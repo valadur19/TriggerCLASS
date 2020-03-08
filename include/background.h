@@ -61,6 +61,45 @@ struct background
 
   double Omega0_fld; /**< \f$ \Omega_{0 de} \f$: fluid */
 
+
+  double Omega_EDE2;  //New EDE  before decay
+
+  double Omega_trigger_decay;
+
+  double Omega0_EDE2; //New EDE today
+
+  double w0_EDE; //New EDE eos parameter
+
+  short Junction_tag;
+
+  short DMa_tag;
+
+  double WKB_trigger_H_over_m;
+
+  double Bubble_trigger_H_over_m;
+
+  short WKB_flag;
+
+  double rho_scf_WKB;
+
+  double a_WKB;
+  
+  double EDE2_clock_mass;
+
+  double EDE2_clock_ini;
+
+  double EDE2_clock_pert_ini;
+
+  double three_eos_EDE;
+
+  short decay_flag; 
+  double tau_decay;
+  double a_decay;
+ 
+
+  double z_decay; /* New EDE decay redshift */
+
+
   enum equation_of_state fluid_equation_of_state; /**< parametrisation scheme for fluid equation of state */
 
   double w0_fld; /**< \f$ w0_{DE} \f$: current fluid equation of state parameter */
@@ -188,6 +227,7 @@ struct background
   int index_bg_rho_lambda;    /**< cosmological constant density */
   int index_bg_rho_fld;       /**< fluid density */
   int index_bg_w_fld;         /**< fluid equation of state */
+  int index_bg_rho_EDE2;      /**< New EDE density */
   int index_bg_rho_ur;        /**< relativistic neutrinos/relics density */
   int index_bg_rho_idm_dr;    /**< density of dark matter interacting with dark radiation */
   int index_bg_rho_idr;       /**< density of interacting dark radiation */
@@ -305,6 +345,9 @@ struct background
   short has_idr;       /**< presence of interacting dark radiation? */
   short has_idm_dr;    /**< presence of dark matter interacting with dark radiation? */
   short has_curvature; /**< presence of global spatial curvature? */
+
+  short has_EDE_decay; /**< presence of decay? */
+  short has_EDE_pert;  /**< presence of perturbations*/
 
   //@}
 

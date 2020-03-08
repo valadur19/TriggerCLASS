@@ -277,6 +277,9 @@ class_precision_parameter(idr_streaming_trigger_tau_c_over_tau,double,10.0) /**<
 
 class_precision_parameter(ur_fluid_approximation,int,ufa_CLASS) /**< method for ultra relativistic fluid approximation */
 
+/*New EDE*/
+class_precision_parameter(EDE_fluid_approximation,int,ufa_CLASS) /**< method for ultra relativistic fluid approximation */
+
 /**
  * when to switch off ur (massless neutrinos / ultra-relativistic
  * relics) fluid approximation

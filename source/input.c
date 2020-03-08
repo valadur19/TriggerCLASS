@@ -1246,6 +1246,46 @@ int input_read_parameters(
   if (pba->K > 0.) pba->sgnK = 1;
   else if (pba->K < 0.) pba->sgnK = -1;
 
+
+  /* EDE */
+  class_read_double("Omega_EDE2",pba->Omega_EDE2);
+  class_read_double("three_eos_EDE",pba->three_eos_EDE);
+  class_read_double("three_ceff2_EDE",ppt->three_ceff2_EDE);
+  class_read_double("three_cvis2_EDE",ppt->three_cvis2_EDE);
+  class_read_double("EDE2_clock_ini",pba->EDE2_clock_ini);
+  class_read_double("EDE2_clock_pert_ini",pba->EDE2_clock_pert_ini);
+  class_read_double("WKB_trigger_H_over_m",pba->WKB_trigger_H_over_m);
+  class_read_double("Bubble_trigger_H_over_m",pba->Bubble_trigger_H_over_m);
+  class_read_double("EDE2_clock_mass",pba->EDE2_clock_mass);
+  class_read_double("Junction_tag", pba->Junction_tag)
+  class_read_double("DMa_tag", pba->DMa_tag)
+    
+    if (pba->Omega_EDE2 > 0) {
+      if (pba->EDE2_clock_ini !=0){
+	pba->phi_ini_scf = pba->EDE2_clock_ini;
+	pba->phi_prime_ini_scf = 0; //This value is set to the attractor later.
+      }
+      /*Here we do a first run of the background module to get a good guess for z_decay. For this we do not need a super precise value of Omega_lambda as the decay happens during rad domination. */
+      class_read_double("background_verbose",pba->background_verbose);
+      class_read_double("back_integration_stepsize",ppr->back_integration_stepsize);
+
+      if (pba->background_verbose >1)
+	printf("First run to estimate Omega0_EDE...\n");
+
+      pba->Omega0_lambda= 1. - pba->Omega0_k - Omega_tot;
+      class_call(find_z_decay(ppr,pba,errmsg),errmsg,errmsg);
+      
+      if (pba->background_verbose >1)
+	printf("Second run to estimate Omega0_EDE...\n");
+	
+      pba->Omega0_lambda= 1. - pba->Omega0_k - Omega_tot - pba->Omega0_EDE2 - pba->Omega0_scf;
+      class_call(find_z_decay(ppr,pba,errmsg),errmsg,errmsg);
+      
+      
+      Omega_tot += pba->Omega0_EDE2;
+      Omega_tot += pba->Omega0_scf;
+  }
+
   /** - Omega_0_lambda (cosmological constant), Omega0_fld (dark energy fluid), Omega0_scf (scalar field) */
 
   class_call(parser_read_double(pfc,"Omega_Lambda",&param1,&flag1,errmsg),
@@ -1370,7 +1410,7 @@ int input_read_parameters(
   }
 
   /* Additional SCF parameters: */
-  if (pba->Omega0_scf != 0.){
+  if (pba->Omega0_scf != 0. && pba->EDE2_clock_ini == 0){
     /** - Read parameters describing scalar field potential */
     class_call(parser_read_list_of_doubles(pfc,
                                            "scf_parameters",
@@ -3214,9 +3254,27 @@ int input_default_params(
   pba->w0_fld = -1.;
   pba->wa_fld = 0.;
   pba->Omega_EDE = 0.;
+  pba->Omega_trigger_decay = 0.;
+  pba->three_eos_EDE = 1.;
   pba->cs2_fld = 1.;
 
   pba->shooting_failed = _FALSE_;
+
+
+  /* - New EDE parameters */
+
+  pba->Omega_EDE2 = 0.; 
+  pba->Omega0_EDE2 = 0.;
+  pba->decay_flag = _FALSE_;
+  pba->Junction_tag = 1;
+  pba->DMa_tag = 1;
+  pba->EDE2_clock_ini = 0;
+  pba->EDE2_clock_pert_ini = 0;
+  
+  pba->Bubble_trigger_H_over_m = 1.;
+  pba->EDE2_clock_mass = 0.;
+  pba->z_decay = 0.; 
+
 
   /** - thermodynamics structure */
 
@@ -3316,6 +3374,11 @@ int input_default_params(
 
   ppt->three_ceff2_ur=1.;
   ppt->three_cvis2_ur=1.;
+
+  /* New EDE fluctuation parameters*/
+  ppt->three_ceff2_EDE=1.;
+  ppt->three_cvis2_EDE=1.;
+
 
   ppt->z_max_pk=0.;
 
@@ -4180,6 +4243,27 @@ int compare_doubles(const void *a,const void *b) {
   return 0;
 }
 
+/*New EDE / This function integrates the bg to get a first estimate for z_decay, Omega0_EDE, Omega0_scf*/
+int find_z_decay(
+		 struct precision * ppr,
+		 struct background *pba,
+		 ErrorMsg errmsg
+		 ){
+  double verbose_safe;
+  double back_integration_stepsize_safe;
+  //printf("Find z_decay... \n");
+    
+  verbose_safe=pba->background_verbose;
+  //back_integration_stepsize_safe=ppr->back_integration_stepsize;
+  pba->background_verbose=0;
+  //ppr->back_integration_stepsize=0.01;
+  //printf("a ini: %e \n", ppr->a_ini_over_a_today_default);
+  class_call(background_init(ppr,pba), pba->error_message, errmsg);
+  class_call(background_free_noinput(pba), pba->error_message, errmsg);
+  pba->background_verbose=verbose_safe;
+  //ppr->back_integration_stepsize=back_integration_stepsize_safe;
+  return _SUCCESS_;
+}
 
 /**
  * Perform preliminary steps fur using the method called Pk_equal,

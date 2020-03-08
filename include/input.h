@@ -299,8 +299,15 @@ extern "C" {
                           int input_verbose,
                           ErrorMsg errmsg
                           );
+  /* New EDE */
+  int find_z_decay(
+		   struct precision * ppr,
+		   struct background *pba,
+		   ErrorMsg errmsg
+		   );
 
 
+  
 #ifdef __cplusplus
 }
 #endif

@@ -270,6 +270,7 @@ int background_functions(
   int n_ncdm;
   /* fluid's time-dependent equation of state parameter */
   double w_fld, dw_over_da, integral_fld;
+  double rho_decay;
   /* scale factor */
   double a;
   /* scalar field quantities */
@@ -348,8 +349,18 @@ int background_functions(
     pvecback[pba->index_bg_V_scf] = V_scf(pba,phi); //V_scf(pba,phi); //write here potential as function of phi
     pvecback[pba->index_bg_dV_scf] = dV_scf(pba,phi); // dV_scf(pba,phi); //potential' as function of phi
     pvecback[pba->index_bg_ddV_scf] = ddV_scf(pba,phi); // ddV_scf(pba,phi); //potential'' as function of phi
-    pvecback[pba->index_bg_rho_scf] = (phi_prime*phi_prime/(2*a*a) + V_scf(pba,phi))/3.; // energy of the scalar field. The field units are set automatically by setting the initial conditions
-    pvecback[pba->index_bg_p_scf] =(phi_prime*phi_prime/(2*a*a) - V_scf(pba,phi))/3.; // pressure of the scalar field
+
+    /*Flo*/ /*Here we check if we are in the WKB regime*/
+    if( pba->EDE2_clock_mass * pba->WKB_trigger_H_over_m <  pvecback[pba->index_bg_H]){
+      pvecback[pba->index_bg_rho_scf] = (phi_prime*phi_prime/(2*a*a) + V_scf(pba,phi))/3.; // energy of the scalar field. The field units are set automatically by setting the initial conditions
+      pvecback[pba->index_bg_p_scf] =(phi_prime*phi_prime/(2*a*a) - V_scf(pba,phi))/3.; // pressure of the scalar field
+    }
+    else{ /*WKB approximation: rho= rho_WKB (a/a_WKB)^3*/
+      pvecback[pba->index_bg_rho_scf] = 0.; //pba->rho_scf_WKB * pow(a_rel / pba->a_WKB,-3.);
+      pvecback[pba->index_bg_p_scf] = 0.;
+    }
+
+    
     rho_tot += pvecback[pba->index_bg_rho_scf];
     p_tot += pvecback[pba->index_bg_p_scf];
     dp_dloga += 0.0; /** <-- This depends on a_prime_over_a, so we cannot add it now! */
@@ -433,6 +444,30 @@ int background_functions(
     dp_dloga += -(4./3.) * pvecback[pba->index_bg_rho_ur];
     rho_r += pvecback[pba->index_bg_rho_ur];
   }
+
+  /* New EDE*/
+       
+  if (pba->has_EDE_decay == _TRUE_) {
+
+    if (a_rel < pba->a_decay || pba->a_decay ==0 ) {  
+      /*w = -1 phase*/
+      rho_decay = pba->Omega_EDE2 * pow(pba->H0,2); /*Note the class convention according to which 3 Mpl^2 is absorbed in rho, i.e. rho_crit = H0^2. */
+      pvecback[pba->index_bg_rho_EDE2] = rho_decay; /* Save value of rho in array for later use.*/
+      p_tot -= rho_decay; /*add pressure contribution*/
+      rho_tot += rho_decay; /*add energy contribution*/
+    }
+    else {
+
+      /* decay phase with w > 1/3 */
+      rho_decay = (pba->Omega_EDE2 + pba->Omega_trigger_decay ) * pow(pba->H0,2) * pow(pba->a_decay / a_rel, 3.+pba->three_eos_EDE);
+      pvecback[pba->index_bg_rho_EDE2] = rho_decay;
+      p_tot += (pba->three_eos_EDE / 3.)*rho_decay;
+      rho_tot += rho_decay;
+      dp_dloga += (-(3.+pba->three_eos_EDE)*pba->three_eos_EDE/3.)*pvecback[pba->index_bg_rho_EDE2];
+    }
+  }
+
+  
 
   /* interacting dark matter */
   if (pba->has_idm_dr == _TRUE_) {
@@ -886,6 +921,8 @@ int background_indices(
   pba->has_idr = _FALSE_;
   pba->has_idm_dr = _FALSE_;
   pba->has_curvature = _FALSE_;
+  pba->has_EDE_decay = _FALSE_;
+  pba->has_EDE_pert = _FALSE_; 
 
   if (pba->Omega0_cdm != 0.)
     pba->has_cdm = _TRUE_;
@@ -919,6 +956,15 @@ int background_indices(
 
   if (pba->sgnK != 0)
     pba->has_curvature = _TRUE_;
+
+
+  /*New EDE*/
+  if (pba->Omega_EDE2 != 0) {
+    pba->has_EDE_decay = _TRUE_;
+    pba->has_EDE_pert = _TRUE_; /*If this flag is set, perturbations are included. This is the only consistent choice.*/
+    if (pba->EDE2_clock_ini != 0.) /*Here we decide if we include a clock field*/
+      pba->has_scf = _TRUE_;
+  }
 
   /** - initialize all indices */
 
@@ -972,6 +1018,9 @@ int background_indices(
   /* - index for fluid */
   class_define_index(pba->index_bg_rho_fld,pba->has_fld,index_bg,1);
   class_define_index(pba->index_bg_w_fld,pba->has_fld,index_bg,1);
+
+  /* index for New EDE fluid*/
+  class_define_index(pba->index_bg_rho_EDE2,pba->has_EDE_decay,index_bg,1);
 
   /* - index for ultra-relativistic neutrinos/species */
   class_define_index(pba->index_bg_rho_ur,pba->has_ur,index_bg,1);
@@ -1669,6 +1718,8 @@ int background_solve(
   /* comoving radius coordinate in Mpc (equal to conformal distance in flat case) */
   double comoving_radius=0.;
 
+  double a;
+
   bpaw.pba = pba;
   class_alloc(pvecback,pba->bg_size*sizeof(double),pba->error_message);
   bpaw.pvecback = pvecback;
@@ -1704,6 +1755,9 @@ int background_solve(
 
   /** - loop over integration steps: call background_functions(), find step size, save data in growTable with gt_add(), perform one step with generic_integrator(), store new value of tau */
 
+  /*New EDE*/ /*reset deycay_flag before integration starts*/
+  pba->decay_flag = _FALSE_;
+  
   while (pvecback_integration[pba->index_bi_a] < pba->a_today) {
 
     tau_start = tau_end;
@@ -1720,6 +1774,32 @@ int background_solve(
     else {
       tau_end = tau_start + (pba->a_today/pvecback_integration[pba->index_bi_a]-1.) / (pvecback_integration[pba->index_bi_a]*pvecback[pba->index_bg_H]);
       /* no possible segmentation fault here: non-zeroness of "a" has been checked in background_functions() */
+    }
+
+
+       /*New EDE*/
+
+    if (pba->has_EDE_decay == _TRUE_){
+       a=pvecback_integration[pba->index_bi_a];
+
+       /* Check if EDE has decayed. */
+       if ((pba->EDE2_clock_mass * pba->Bubble_trigger_H_over_m > pvecback[pba->index_bg_H])&&(pba->decay_flag == _FALSE_)) {
+	 pba->decay_flag = _TRUE_; 
+	 pba->z_decay = 1. /a -1.;
+	 pba->a_decay = a;
+	 pba->Omega_trigger_decay = pvecback[pba->index_bg_rho_scf] /  pow(pba->H0,2);  
+	 if (pba->background_verbose > 0){ 
+	   printf("New EDE decayed at redshift: %f ; fraction New EDE: %f; fraction clock: %e \n",pba->z_decay,  pba->Omega_EDE2 * pow(pba->H0,2) / (pow(pvecback[pba->index_bg_H],2)), pvecback[pba->index_bg_rho_scf] / pow(pvecback[pba->index_bg_H],2) );
+	 }
+       }
+       /*Flo:  make integration finer around decay time*/
+       //delta_z=2*ppr->back_integration_stepsize/a;
+       //if ((1./a-1. <   pba->z_decay + delta_z) && (1./a-1. > pba->z_decay - delta_z) && (pba->z_decay >1.)  ){
+	 //printf("decay: %f, a: %e, z_decay: %e, counter: %d \n", 1./a - 1.,a,pba->z_decay,d);
+	 //d= abs(1./a-1.-pba->z_decay)/delta_z;
+	 //tau_end = tau_start + ppr->back_integration_stepsize/(1+150.*exp(-d*6)) / (pvecback_integration[pba->index_bi_a]*pvecback[pba->index_bg_H]);
+       // }
+       
     }
 
     class_test((tau_end-tau_start)/tau_start < ppr->smallest_allowed_variation,
@@ -1895,6 +1975,18 @@ int background_solve(
                -pba->background_table[pba->index_bg_rho_g])
     /(7./8.*pow(4./11.,4./3.)*pba->background_table[pba->index_bg_rho_g]);
 
+
+  /*New EDE*/ /*Calculate abundance of scf and EDE today*/
+  if (pba->has_scf == _TRUE_ && pba->has_EDE_decay ==_TRUE_){
+    pba->Omega0_scf = pvecback[pba->index_bg_rho_scf]/pvecback[pba->index_bg_rho_crit];
+  }
+  
+  if (pba->has_EDE_decay ==_TRUE_){
+    pba->Omega0_EDE2 = pvecback[pba->index_bg_rho_EDE2]/pvecback[pba->index_bg_rho_crit];
+  }
+
+  
+
   /** - done */
   if (pba->background_verbose > 0) {
     printf(" -> age = %f Gyr\n",pba->age);
@@ -1911,7 +2003,16 @@ int background_solve(
              pba->Omega0_dr+pba->Omega0_dcdm,pba->Omega0_dcdmdr);
       printf("     -> Omega_ini_dcdm/Omega_b = %f\n",pba->Omega_ini_dcdm/pba->Omega0_b);
     }
-    if (pba->has_scf == _TRUE_){
+    if (pba->has_scf == _TRUE_ && pba->has_EDE_decay ==_TRUE_){
+
+      printf("    EDE details:\n");
+      printf("     -> Junction_tag: %d, DMa_tag: %d, Bubble_trigger: %f \n", pba->Junction_tag, pba->DMa_tag, pba->Bubble_trigger_H_over_m);
+      printf("     -> H/H0-1: %e \n",pvecback[pba->index_bg_H]/pba->H0-1);
+      printf("     -> Omega_scf = %g, scf_ini = %g, scf_pert_ini = %g \n",
+             pvecback[pba->index_bg_rho_scf]/pvecback[pba->index_bg_rho_crit],pba->EDE2_clock_ini, pba->EDE2_clock_pert_ini);   
+    }
+    
+    if (pba->has_scf == _TRUE_ && pba->has_EDE_decay == _FALSE_){
       printf("    Scalar field details:\n");
       printf("     -> Omega_scf = %g, wished %g\n",
              pvecback[pba->index_bg_rho_scf]/pvecback[pba->index_bg_rho_crit], pba->Omega0_scf);
@@ -2081,7 +2182,17 @@ int background_initial_conditions(
    * - Check equations and signs. Sign of phi_prime?
    * - is rho_ur all there is early on?
    */
-  if(pba->has_scf == _TRUE_){
+
+   /*New EDE*/ /*Here we specify the initial conditions for the scalar field in slow roll approximation. We set it on the attractor.*/
+  /* phi'_ini = -1/5 * phi_ini a^2 m^2  / (a H) where H = sqrt(rho) ins class conventions. */
+  
+  if(pba->has_EDE_decay == _TRUE_ && pba->has_scf == _TRUE_){
+    
+    pvecback_integration[pba->index_bi_phi_scf] = pba->phi_ini_scf;
+    pvecback_integration[pba->index_bi_phi_prime_scf] = -1./5. * pba->phi_ini_scf *pow(pba->EDE2_clock_mass ,2) / pow(rho_rad,0.5) * a;
+    // printf("initial value: %e; \n",pvecback_integration[pba->index_bi_phi_prime_scf]);
+  }
+  else if(pba->has_scf == _TRUE_){
     scf_lambda = pba->scf_parameters[0];
     if(pba->attractor_ic_scf == _TRUE_){
       pvecback_integration[pba->index_bi_phi_scf] = -1/scf_lambda*
@@ -2260,6 +2371,8 @@ int background_output_titles(struct background * pba,
   class_store_columntitle(titles,"(.)rho_lambda",pba->has_lambda);
   class_store_columntitle(titles,"(.)rho_fld",pba->has_fld);
   class_store_columntitle(titles,"(.)w_fld",pba->has_fld);
+
+  class_store_columntitle(titles,"(.)rho_EDE2",pba->has_EDE_decay);
   class_store_columntitle(titles,"(.)rho_ur",pba->has_ur);
   class_store_columntitle(titles,"(.)rho_idr",pba->has_idr);
   class_store_columntitle(titles,"(.)rho_idm_dr",pba->has_idm_dr);
@@ -2319,6 +2432,7 @@ int background_output_data(
     class_store_double(dataptr,pvecback[pba->index_bg_rho_lambda],pba->has_lambda,storeidx);
     class_store_double(dataptr,pvecback[pba->index_bg_rho_fld],pba->has_fld,storeidx);
     class_store_double(dataptr,pvecback[pba->index_bg_w_fld],pba->has_fld,storeidx);
+    class_store_double(dataptr,pvecback[pba->index_bg_rho_EDE2],pba->has_EDE_decay,storeidx);
     class_store_double(dataptr,pvecback[pba->index_bg_rho_ur],pba->has_ur,storeidx);
     class_store_double(dataptr,pvecback[pba->index_bg_rho_idr],pba->has_idr,storeidx);
     class_store_double(dataptr,pvecback[pba->index_bg_rho_idm_dr],pba->has_idm_dr,storeidx);
@@ -2444,10 +2558,23 @@ int background_derivs(
 
   if (pba->has_scf == _TRUE_){
     /** - Scalar field equation: \f$ \phi'' + 2 a H \phi' + a^2 dV = 0 \f$  (note H is wrt cosmic time) */
-    dy[pba->index_bi_phi_scf] = y[pba->index_bi_phi_prime_scf];
-    dy[pba->index_bi_phi_prime_scf] = - y[pba->index_bi_a]*
+    /*Flo*/ /* WKB approximation to avoid problems with  oscillations at very late times*/
+
+    /*We turn on the WKB approximation once H/mass < WKB_trigger_h_over_m */
+    if ( pba->EDE2_clock_mass * pba->Bubble_trigger_H_over_m <  pvecback[pba->index_bg_H]) {
+      /*normal evolution*/
+      dy[pba->index_bi_phi_scf] = y[pba->index_bi_phi_prime_scf];
+
+      dy[pba->index_bi_phi_prime_scf] = - y[pba->index_bi_a] *
       (2*pvecback[pba->index_bg_H]*y[pba->index_bi_phi_prime_scf]
        + y[pba->index_bi_a]*dV_scf(pba,y[pba->index_bi_phi_scf])) ;
+    } 
+    else{
+      dy[pba->index_bi_phi_scf] = 0 ;
+      dy[pba->index_bi_phi_prime_scf] = 0;
+      y[pba->index_bi_phi_scf] =0.;
+      y[pba->index_bi_phi_prime_scf] =0.;
+    }
   }
 
   return _SUCCESS_;
@@ -2561,22 +2688,39 @@ double ddV_p_scf(
 /** Fianlly we can obtain the overall potential \f$ V = V_p*V_e \f$
  */
 
+/*Flo*/ /*Here we implement out clock potential and its derivatives*/
+
 double V_scf(
              struct background *pba,
              double phi) {
-  return  V_e_scf(pba,phi)*V_p_scf(pba,phi);
+  if (pba->has_EDE_decay == _TRUE_){
+    return  1./2. * pba->EDE2_clock_mass * pba->EDE2_clock_mass * phi*phi;
+  }
+  else{
+     return  V_e_scf(pba,phi)*V_p_scf(pba,phi);
+  }
 }
 
 double dV_scf(
               struct background *pba,
-              double phi) {
-  return dV_e_scf(pba,phi)*V_p_scf(pba,phi) + V_e_scf(pba,phi)*dV_p_scf(pba,phi);
+	      double phi) {
+  if (pba->has_EDE_decay == _TRUE_){
+    return pba->EDE2_clock_mass * pba->EDE2_clock_mass * phi;
+  }
+  else{
+    return dV_e_scf(pba,phi)*V_p_scf(pba,phi) + V_e_scf(pba,phi)*dV_p_scf(pba,phi);
+  }
 }
 
 double ddV_scf(
                struct background *pba,
                double phi) {
-  return ddV_e_scf(pba,phi)*V_p_scf(pba,phi) + 2*dV_e_scf(pba,phi)*dV_p_scf(pba,phi) + V_e_scf(pba,phi)*ddV_p_scf(pba,phi);
+  if (pba->has_EDE_decay == _TRUE_){
+    return pba->EDE2_clock_mass * pba->EDE2_clock_mass;
+  }
+  else{
+    return ddV_e_scf(pba,phi)*V_p_scf(pba,phi) + 2*dV_e_scf(pba,phi)*dV_p_scf(pba,phi) + V_e_scf(pba,phi)*ddV_p_scf(pba,phi);
+  }
 }
 
 /**
@@ -2650,7 +2794,7 @@ int background_output_budget(
       }
     }
 
-    if(pba->has_lambda || pba->has_fld || pba->has_scf || pba->has_curvature){
+    if(pba->has_lambda || pba->has_fld || pba->has_scf || pba->has_curvature || pba->has_EDE_decay){
       printf(" ---> Other Content \n");
     }
     if(pba->has_lambda){
@@ -2660,6 +2804,10 @@ int background_output_budget(
     if(pba->has_fld){
       _class_print_species_("Dark Energy Fluid",fld);
       budget_other+=pba->Omega0_fld;
+    }
+    if(pba->has_EDE_decay){
+      _class_print_species_("New EDE",EDE2);
+      budget_other+=pba->Omega0_EDE2;
     }
     if(pba->has_scf){
       _class_print_species_("Scalar Field",scf);
