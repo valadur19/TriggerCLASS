@@ -351,14 +351,14 @@ int background_functions(
     pvecback[pba->index_bg_ddV_scf] = ddV_scf(pba,phi); // ddV_scf(pba,phi); //potential'' as function of phi
 
     /*Flo*/ /*Here we check if we are in the WKB regime*/
-    if( pba->EDE2_clock_mass * pba->WKB_trigger_H_over_m <  pvecback[pba->index_bg_H]){
-      pvecback[pba->index_bg_rho_scf] = (phi_prime*phi_prime/(2*a*a) + V_scf(pba,phi))/3.; // energy of the scalar field. The field units are set automatically by setting the initial conditions
-      pvecback[pba->index_bg_p_scf] =(phi_prime*phi_prime/(2*a*a) - V_scf(pba,phi))/3.; // pressure of the scalar field
-    }
-    else{ /*WKB approximation: rho= rho_WKB (a/a_WKB)^3*/
-      pvecback[pba->index_bg_rho_scf] = 0.; //pba->rho_scf_WKB * pow(a_rel / pba->a_WKB,-3.);
-      pvecback[pba->index_bg_p_scf] = 0.;
-    }
+    //if( pba->EDE2_clock_mass * pba->WKB_trigger_H_over_m <  pvecback[pba->index_bg_H]){
+    pvecback[pba->index_bg_rho_scf] = (phi_prime*phi_prime/(2*a*a) + V_scf(pba,phi))/3.; // energy of the scalar field. The field units are set automatically by setting the initial conditions
+    pvecback[pba->index_bg_p_scf] =(phi_prime*phi_prime/(2*a*a) - V_scf(pba,phi))/3.; // pressure of the scalar field
+    //}
+    //else{ /*WKB approximation: rho= rho_WKB (a/a_WKB)^3*/
+    //pvecback[pba->index_bg_rho_scf] = 0.; //pba->rho_scf_WKB * pow(a_rel / pba->a_WKB,-3.);
+    //pvecback[pba->index_bg_p_scf] = 0.;
+    //}
 
     
     rho_tot += pvecback[pba->index_bg_rho_scf];
@@ -459,7 +459,7 @@ int background_functions(
     else {
 
       /* decay phase with w > 1/3 */
-      rho_decay = (pba->Omega_EDE2 + pba->Omega_trigger_decay ) * pow(pba->H0,2) * pow(pba->a_decay / a_rel, 3.+pba->three_eos_EDE);
+      rho_decay = (pba->Omega_EDE2 ) * pow(pba->H0,2) * pow(pba->a_decay / a_rel, 3.+pba->three_eos_EDE);
       pvecback[pba->index_bg_rho_EDE2] = rho_decay;
       p_tot += (pba->three_eos_EDE / 3.)*rho_decay;
       rho_tot += rho_decay;
@@ -2560,8 +2560,8 @@ int background_derivs(
     /** - Scalar field equation: \f$ \phi'' + 2 a H \phi' + a^2 dV = 0 \f$  (note H is wrt cosmic time) */
     /*Flo*/ /* WKB approximation to avoid problems with  oscillations at very late times*/
 
-    /*We turn on the WKB approximation once H/mass < WKB_trigger_h_over_m */
-    if ( pba->EDE2_clock_mass * pba->Bubble_trigger_H_over_m <  pvecback[pba->index_bg_H]) {
+    /*We turn scf off once H/mass < Bubble_trigger_h_over_m with little safety margin*/
+    if ( pba->EDE2_clock_mass * pba->Bubble_trigger_H_over_m <  pvecback[pba->index_bg_H]*(1.1)) {
       /*normal evolution*/
       dy[pba->index_bi_phi_scf] = y[pba->index_bi_phi_prime_scf];
 

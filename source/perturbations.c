@@ -3142,6 +3142,11 @@ int perturb_prepare_k_output(struct background * pba,
       class_store_columntitle(ppt->scalar_titles,"delta_ur",pba->has_ur);
       class_store_columntitle(ppt->scalar_titles,"theta_ur",pba->has_ur);
       class_store_columntitle(ppt->scalar_titles,"shear_ur",pba->has_ur);
+      /* New EDE*/
+      class_store_columntitle(ppt->scalar_titles,"delta_EDE",pba->has_EDE_pert);
+      class_store_columntitle(ppt->scalar_titles,"theta_EDE",pba->has_EDE_pert);
+      class_store_columntitle(ppt->scalar_titles,"shear_EDE",pba->has_EDE_pert);
+
       /* Interacting dark radiation */
       class_store_columntitle(ppt->scalar_titles,"delta_idr",pba->has_idr);
       class_store_columntitle(ppt->scalar_titles,"theta_idr",pba->has_idr);
@@ -3173,10 +3178,6 @@ int perturb_prepare_k_output(struct background * pba,
       class_store_columntitle(ppt->scalar_titles, "delta_dr", pba->has_dr);
       class_store_columntitle(ppt->scalar_titles, "theta_dr", pba->has_dr);
       class_store_columntitle(ppt->scalar_titles, "shear_dr", pba->has_dr);
-      /* New EDE*/
-      class_store_columntitle(ppt->scalar_titles,"delta_EDE",pba->has_EDE_pert);
-      class_store_columntitle(ppt->scalar_titles,"theta_EDE",pba->has_EDE_pert);
-      class_store_columntitle(ppt->scalar_titles,"shear_EDE",pba->has_EDE_pert);
       /* Scalar field scf */
       class_store_columntitle(ppt->scalar_titles, "delta_scf", pba->has_scf);
       class_store_columntitle(ppt->scalar_titles, "theta_scf", pba->has_scf);
@@ -4763,14 +4764,19 @@ int perturb_vector_init(
 	    amp_rel = 1.;
 	    sigma_EDE = 0.0;
 	  }
+
 	    //printf("k: %f, aH: %f, h': %f, eta': %f, alpha1: %f, alpha2: %f \n",k,a_prime_over_a ,ppw->pvecmetric[ppw->index_mt_h_prime],ppw->pvecmetric[ppw->index_mt_eta_prime],(ppw->pvecmetric[ppw->index_mt_h_prime] + 6.0*ppw->pvecmetric[ppw->index_mt_eta_prime])/(2.0 *k*k),ppw->pvecmetric[ppw->index_mt_alpha]);
 	  
 	  	    
-	    ppv->y[ppv->index_pt_delta_EDE] =  - (3. + pba->three_eos_EDE) * amp_rel * a_prime_over_a * delta_phi_over_phi_prime;  // follows from junction conditions
+	  ppv->y[ppv->index_pt_delta_EDE] =  - (3. + pba->three_eos_EDE) * amp_rel * a_prime_over_a * delta_phi_over_phi_prime;  // follows from junction conditions
 
 	    
-	    ppv->y[ppv->index_pt_theta_EDE] = - 1./(3. + pba->three_eos_EDE) * k * k / a_prime_over_a * ppv->y[ppv->index_pt_delta_EDE]; // follows from junction conditions
+	  ppv->y[ppv->index_pt_theta_EDE] = - 1./(3. + pba->three_eos_EDE) * k * k / a_prime_over_a * ppv->y[ppv->index_pt_delta_EDE]; // follows from junction conditions
 
+
+	  // if (k<0.04 && k>0.03)
+	  //printf("v1: %f, v2: %f, v3: %E",k,ppw->pv->y[ppw->pv->index_pt_phi_scf], ppw->pvecback[pba->index_bg_phi_prime_scf]);
+		  
 	    // printf("z: %f and k: %f and delta_EDE: %f and theta_EDE: %f \n",1./a-1,k,ppv->y[ppv->index_pt_delta_EDE],ppv->y[ppv->index_pt_theta_EDE]);
 
 	    ppv->y[ppv->index_pt_shear_EDE] =  sigma_EDE;
