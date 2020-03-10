@@ -18,6 +18,10 @@ class_precision_parameter(back_integration_stepsize,double,7.e-3)
 /**
  * Tolerance of the background integration, giving the allowed relative integration error.
  */
+class_precision_parameter(decay_res_enhancement,double,0)
+/**
+ * Makes integration around EDE decay finer.
+ */
 class_precision_parameter(tol_background_integration,double,1.e-2)
 /**
  * Tolerance of the deviation of \f$ \Omega_r \f$ from 1 for which to start integration:

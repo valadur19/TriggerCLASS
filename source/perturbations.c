@@ -4765,7 +4765,7 @@ int perturb_vector_init(
 	    sigma_EDE = 0.0;
 	  }
 
-	    //printf("k: %f, aH: %f, h': %f, eta': %f, alpha1: %f, alpha2: %f \n",k,a_prime_over_a ,ppw->pvecmetric[ppw->index_mt_h_prime],ppw->pvecmetric[ppw->index_mt_eta_prime],(ppw->pvecmetric[ppw->index_mt_h_prime] + 6.0*ppw->pvecmetric[ppw->index_mt_eta_prime])/(2.0 *k*k),ppw->pvecmetric[ppw->index_mt_alpha]);
+	  //printf("k: %f, aH: %f, h': %f, eta': %f, alpha1: %f, alpha2: %f \n",k,a_prime_over_a ,ppw->pvecmetric[ppw->index_mt_h_prime],ppw->pvecmetric[ppw->index_mt_eta_prime],(ppw->pvecmetric[ppw->index_mt_h_prime] + 6.0*ppw->pvecmetric[ppw->index_mt_eta_prime])/(2.0 *k*k),ppw->pvecmetric[ppw->index_mt_alpha]);
 	  
 	  	    
 	  ppv->y[ppv->index_pt_delta_EDE] =  - (3. + pba->three_eos_EDE) * amp_rel * a_prime_over_a * delta_phi_over_phi_prime;  // follows from junction conditions

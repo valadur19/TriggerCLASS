@@ -1719,6 +1719,7 @@ int background_solve(
   double comoving_radius=0.;
 
   double a;
+  double d, delta_z;
 
   bpaw.pba = pba;
   class_alloc(pvecback,pba->bg_size*sizeof(double),pba->error_message);
@@ -1793,12 +1794,12 @@ int background_solve(
 	 }
        }
        /*Flo:  make integration finer around decay time*/
-       //delta_z=2*ppr->back_integration_stepsize/a;
-       //if ((1./a-1. <   pba->z_decay + delta_z) && (1./a-1. > pba->z_decay - delta_z) && (pba->z_decay >1.)  ){
+       delta_z=2*ppr->back_integration_stepsize/a;
+       if ((1./a-1. <   pba->z_decay + delta_z) && (1./a-1. > pba->z_decay - delta_z) && (pba->z_decay >1.)  ){
 	 //printf("decay: %f, a: %e, z_decay: %e, counter: %d \n", 1./a - 1.,a,pba->z_decay,d);
-	 //d= abs(1./a-1.-pba->z_decay)/delta_z;
-	 //tau_end = tau_start + ppr->back_integration_stepsize/(1+150.*exp(-d*6)) / (pvecback_integration[pba->index_bi_a]*pvecback[pba->index_bg_H]);
-       // }
+	 d= abs(1./a-1.-pba->z_decay)/delta_z;
+	 tau_end = tau_start + ppr->back_integration_stepsize/(1+ppr->decay_res_enhancement*exp(-d*6)) / (pvecback_integration[pba->index_bi_a]*pvecback[pba->index_bg_H]);
+        }
        
     }
 
@@ -2561,7 +2562,7 @@ int background_derivs(
     /*Flo*/ /* WKB approximation to avoid problems with  oscillations at very late times*/
 
     /*We turn scf off once H/mass < Bubble_trigger_h_over_m with little safety margin*/
-    if ( pba->EDE2_clock_mass * pba->Bubble_trigger_H_over_m <  pvecback[pba->index_bg_H]*(1.1)) {
+    if ( pba->EDE2_clock_mass * pba->Bubble_trigger_H_over_m <  pvecback[pba->index_bg_H]*(1.01)) {
       /*normal evolution*/
       dy[pba->index_bi_phi_scf] = y[pba->index_bi_phi_prime_scf];
 
