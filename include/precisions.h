@@ -283,6 +283,7 @@ class_precision_parameter(ur_fluid_approximation,int,ufa_CLASS) /**< method for 
 
 /*New EDE*/
 class_precision_parameter(EDE_fluid_approximation,int,ufa_CLASS) /**< method for ultra relativistic fluid approximation */
+class_precision_parameter(sub_dom_cond,double,0) /**< method for ultra relativistic fluid approximation */
 
 /**
  * when to switch off ur (massless neutrinos / ultra-relativistic

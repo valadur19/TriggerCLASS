@@ -2591,7 +2591,8 @@ int perturb_workspace_init(
     class_define_index(ppw->index_ap_ncdmfa,pba->has_ncdm,index_ap,1);
     class_define_index(ppw->index_ap_tca_idm_dr,pba->has_idm_dr,index_ap,1);
     class_define_index(ppw->index_ap_rsa_idr,pba->has_idr,index_ap,1);
-    class_define_index(ppw->index_ap_CCa,pba->has_EDE_pert,index_ap,1); 
+    class_define_index(ppw->index_ap_CCa,pba->has_EDE_pert,index_ap,1);
+    class_define_index(ppw->index_ap_sda,pba->has_EDE_pert,index_ap,1); 
 
   }
 
@@ -2624,6 +2625,10 @@ int perturb_workspace_init(
      /*New EDE: Define CC approximation*/
     if (pba->has_EDE_pert == _TRUE_) {
       ppw->approx[ppw->index_ap_CCa]=(int)CCa_on;
+    }
+
+    if (pba->has_EDE_pert == _TRUE_) {
+      ppw->approx[ppw->index_ap_sda]=(int)sda_off;
     }
   }
 
@@ -3820,7 +3825,7 @@ int perturb_vector_init(
 
     /*New EDE*/
     /*Here we allocate memory for the variables to be integrated depending on approximation scheme.*/
-    if (pba->has_EDE_pert  && (ppw->approx[ppw->index_ap_CCa] == (int)CCa_off) ) {
+    if (pba->has_EDE_pert  && (ppw->approx[ppw->index_ap_CCa] == (int)CCa_off) && (ppw->approx[ppw->index_ap_sda] == (int)sda_off)  ) {
 
       class_define_index(ppv->index_pt_delta_EDE,_TRUE_,index_pt,1); 
       class_define_index(ppv->index_pt_theta_EDE,_TRUE_,index_pt,1); 
@@ -4384,7 +4389,7 @@ int perturb_vector_init(
 	/*New EDE*/
 	/*EDE perturbations not affectecd by tight coupling approximation, so we just copy the values from the previous integration step*/
 	if (pba->has_EDE_pert == _TRUE_ ) {
-	  if  (ppw->approx[ppw->index_ap_CCa] == (int)CCa_off){
+	  if  ( (ppw->approx[ppw->index_ap_sda] == (int)sda_off) && (ppw->approx[ppw->index_ap_CCa] == (int)CCa_off)){
 	    ppv->y[ppv->index_pt_delta_EDE] =
 	      ppw->pv->y[ppw->pv->index_pt_delta_EDE];
 
@@ -4495,7 +4500,7 @@ int perturb_vector_init(
 	/*New EDE*/
 	/*EDE perturbations not affectecd by radiation streaming approximation, so we just copy the values from the previous integration step*/
 	if (pba->has_EDE_pert == _TRUE_ ) {
-	  if  (ppw->approx[ppw->index_ap_CCa] == (int)CCa_off){
+	  if  ( (ppw->approx[ppw->index_ap_sda] == (int)sda_off) &&(ppw->approx[ppw->index_ap_CCa] == (int)CCa_off)){
 	    ppv->y[ppv->index_pt_delta_EDE] =
 	      ppw->pv->y[ppw->pv->index_pt_delta_EDE];
 
@@ -4620,7 +4625,7 @@ int perturb_vector_init(
 	  	  /*New EDE*/
 	  /*Just copy values*/
 	  if (pba->has_EDE_pert == _TRUE_){
-	    if (ppw->approx[ppw->index_ap_CCa] == (int)CCa_off) {
+	    if ((ppw->approx[ppw->index_ap_sda] == (int)sda_off) && (ppw->approx[ppw->index_ap_CCa] == (int)CCa_off)) {
 
 	      ppv->y[ppv->index_pt_delta_EDE] =
 		ppw->pv->y[ppw->pv->index_pt_delta_EDE];
@@ -4744,34 +4749,36 @@ int perturb_vector_init(
 	  /*New EDE*/ /*important*/
 	  /*here we set the matching conditions for EDE perturbations: before transition perturbations are zero and after transition they start with value set by fluctuation in transition surface / see Israel's equations*/
 	  
-	  
-	  a = ppw->pvecback[pba->index_bg_a];
+	  if ((ppw->approx[ppw->index_ap_sda] == (int)sda_off)){
+	    
+     
+	    a = ppw->pvecback[pba->index_bg_a];
 
 	  
 
-	  a_prime_over_a = ppw->pvecback[pba->index_bg_H]*a;
-
-	  if (pba->has_scf == _TRUE_) 
-	    delta_phi_over_phi_prime = ppw->pv->y[ppw->pv->index_pt_phi_scf] / (ppw->pvecback[pba->index_bg_phi_prime_scf] );
-	  else
-	    delta_phi_over_phi_prime = 0; //In absence of scalar field we use trivial junction conditions.  
+	    a_prime_over_a = ppw->pvecback[pba->index_bg_H]*a;
 	  
-	  if (pba->Junction_tag == 0){
-	    amp_rel = 0.0;
-	    sigma_EDE = 0.0;
-	  }
-	  else if(pba->Junction_tag == 1){
-	    amp_rel = 1.;
-	    sigma_EDE = 0.0;
-	  }
+	    if (pba->has_scf == _TRUE_) 
+	      delta_phi_over_phi_prime = ppw->pv->y[ppw->pv->index_pt_phi_scf] / (ppw->pvecback[pba->index_bg_phi_prime_scf] );
+	    else
+	      delta_phi_over_phi_prime = 0; //In absence of scalar field we use trivial junction conditions.  
+	  
+	    if (pba->Junction_tag == 0){
+	      amp_rel = 0.0;
+	      sigma_EDE = 0.0;
+	    }
+	    else if(pba->Junction_tag == 1){
+	      amp_rel = 1.;
+	      sigma_EDE = 0.0;
+	    }
 
 	  //printf("k: %f, aH: %f, h': %f, eta': %f, alpha1: %f, alpha2: %f \n",k,a_prime_over_a ,ppw->pvecmetric[ppw->index_mt_h_prime],ppw->pvecmetric[ppw->index_mt_eta_prime],(ppw->pvecmetric[ppw->index_mt_h_prime] + 6.0*ppw->pvecmetric[ppw->index_mt_eta_prime])/(2.0 *k*k),ppw->pvecmetric[ppw->index_mt_alpha]);
 	  
 	  	    
-	  ppv->y[ppv->index_pt_delta_EDE] =  - (3. + pba->three_eos_EDE) * amp_rel * a_prime_over_a * delta_phi_over_phi_prime;  // follows from junction conditions
+	    ppv->y[ppv->index_pt_delta_EDE] =  - (3. + pba->three_eos_EDE) * amp_rel * a_prime_over_a * delta_phi_over_phi_prime;  // follows from junction conditions
 
 	    
-	  ppv->y[ppv->index_pt_theta_EDE] = - 1./(3. + pba->three_eos_EDE) * k * k / a_prime_over_a * ppv->y[ppv->index_pt_delta_EDE]; // follows from junction conditions
+	    ppv->y[ppv->index_pt_theta_EDE] = - 1./(3. + pba->three_eos_EDE) * k * k / a_prime_over_a * ppv->y[ppv->index_pt_delta_EDE]; // follows from junction conditions
 
 
 	  // if (k<0.04 && k>0.03)
@@ -4783,7 +4790,7 @@ int perturb_vector_init(
 	    
 	    //the higher multipoles below we have to set to zero as they are not fixed by the junction conditions. Note that this is a gauge invariant choice.	
 	    
-	  
+	  }
 
 	  /* New EDE */ /*Scalar field evolution stops at transition.*/
 	  //  if (pba->has_scf == _TRUE_) {
@@ -4814,6 +4821,99 @@ int perturb_vector_init(
             }
           }
         }
+
+	if ((pa_old[ppw->index_ap_sda] == (int)sda_off) && (ppw->approx[ppw->index_ap_sda] == (int)sda_on)) {
+
+          if (ppt->perturbations_verbose>2)
+            fprintf(stdout,"Mode k=%e: switch off EDE CC approximation at tau=%e\n",k,tau);
+
+          if (ppw->approx[ppw->index_ap_rsa] == (int)rsa_off) {
+
+            ppv->y[ppv->index_pt_delta_g] =
+              ppw->pv->y[ppw->pv->index_pt_delta_g];
+
+            ppv->y[ppv->index_pt_theta_g] =
+              ppw->pv->y[ppw->pv->index_pt_theta_g];
+          }
+
+          if ((ppw->approx[ppw->index_ap_tca] == (int)tca_off) && (ppw->approx[ppw->index_ap_rsa] == (int)rsa_off)) {
+
+            ppv->y[ppv->index_pt_shear_g] =
+              ppw->pv->y[ppw->pv->index_pt_shear_g];
+
+            ppv->y[ppv->index_pt_l3_g] =
+              ppw->pv->y[ppw->pv->index_pt_l3_g];
+
+            for (l = 4; l <= ppw->pv->l_max_g; l++) {
+
+              ppv->y[ppv->index_pt_delta_g+l] =
+                ppw->pv->y[ppw->pv->index_pt_delta_g+l];
+            }
+
+            ppv->y[ppv->index_pt_pol0_g] =
+              ppw->pv->y[ppw->pv->index_pt_pol0_g];
+
+            ppv->y[ppv->index_pt_pol1_g] =
+              ppw->pv->y[ppw->pv->index_pt_pol1_g];
+
+            ppv->y[ppv->index_pt_pol2_g] =
+              ppw->pv->y[ppw->pv->index_pt_pol2_g];
+
+            ppv->y[ppv->index_pt_pol3_g] =
+              ppw->pv->y[ppw->pv->index_pt_pol3_g];
+
+            for (l = 4; l <= ppw->pv->l_max_pol_g; l++) {
+
+              ppv->y[ppv->index_pt_pol0_g+l] =
+                ppw->pv->y[ppw->pv->index_pt_pol0_g+l];
+            }
+
+          }
+
+	  if (pba->has_ur == _TRUE_) {
+
+            if (ppw->approx[ppw->index_ap_rsa] == (int)rsa_off) {
+
+
+              ppv->y[ppv->index_pt_delta_ur] =
+                ppw->pv->y[ppw->pv->index_pt_delta_ur];
+
+              ppv->y[ppv->index_pt_theta_ur] =
+                ppw->pv->y[ppw->pv->index_pt_theta_ur];
+
+              ppv->y[ppv->index_pt_shear_ur] =
+                ppw->pv->y[ppw->pv->index_pt_shear_ur];
+
+              if (ppw->approx[ppw->index_ap_ufa] == (int)ufa_off) {
+
+                ppv->y[ppv->index_pt_l3_ur] =
+                  ppw->pv->y[ppw->pv->index_pt_l3_ur];
+
+                for (l=4; l <= ppv->l_max_ur; l++)
+                  ppv->y[ppv->index_pt_delta_ur+l] =
+                    ppw->pv->y[ppw->pv->index_pt_delta_ur+l];
+              }
+            }
+          }
+	  
+	  
+          if (pba->has_ncdm == _TRUE_) {
+            index_pt = 0;
+            for(n_ncdm = 0; n_ncdm < ppv->N_ncdm; n_ncdm++){
+              for(index_q=0; index_q < ppv->q_size_ncdm[n_ncdm]; index_q++){
+                for(l=0; l<=ppv->l_max_ncdm[n_ncdm]; l++){
+                  /* This is correct even when ncdmfa == off, since ppv->l_max_ncdm and
+                      ppv->q_size_ncdm is updated.*/
+                  ppv->y[ppv->index_pt_psi0_ncdm1+index_pt] =
+                    ppw->pv->y[ppw->pv->index_pt_psi0_ncdm1+index_pt];
+                  index_pt++;
+                }
+              }
+            }
+          }
+        }
+
+	
       }
 
 
@@ -5011,7 +5111,7 @@ int perturb_vector_init(
 	  	  	  /*New EDE*/
 	  /*Just copy values*/
 	  if (pba->has_EDE_pert == _TRUE_){
-	    if (ppw->approx[ppw->index_ap_CCa] == (int)CCa_off) {
+	    if ((ppw->approx[ppw->index_ap_sda] == (int)sda_off)&&(ppw->approx[ppw->index_ap_CCa] == (int)CCa_off)) {
 
 	      ppv->y[ppv->index_pt_delta_EDE] =
 		ppw->pv->y[ppw->pv->index_pt_delta_EDE];
@@ -5140,7 +5240,7 @@ int perturb_vector_init(
 	  	  	  /*New EDE*/
 	  /*Just copy values*/
 	  if (pba->has_EDE_pert == _TRUE_){
-	    if (ppw->approx[ppw->index_ap_CCa] == (int)CCa_off) {
+	    if ((ppw->approx[ppw->index_ap_sda] == (int)sda_off)&&(ppw->approx[ppw->index_ap_CCa] == (int)CCa_off)) {
 
 	      ppv->y[ppv->index_pt_delta_EDE] =
 		ppw->pv->y[ppw->pv->index_pt_delta_EDE];
@@ -6326,6 +6426,18 @@ int perturb_approximations(
       //printf("k: %e, app: %d \n",k, ppw->approx[ppw->index_ap_CCa]);
     }
 
+    /*New EDE*/
+    /*define sd (sub dominant) approximation / turned on when after decat EDE becomes highly sub dominant and perturbations need not be tracked anymore (after decay!)*/
+    if (pba->has_EDE_pert == _TRUE_){
+      if ((1./ppw->pvecback[pba->index_bg_a]-1. < pba->z_decay*0.9) && (ppw->pvecback[pba->index_bg_rho_EDE2]/pow(ppw->pvecback[pba->index_bg_H],2)< ppr->sub_dom_cond )) {
+	ppw->approx[ppw->index_ap_sda] = (int)sda_on;
+      }
+      else {
+	ppw->approx[ppw->index_ap_sda] = (int)sda_off;
+      }
+      //printf("k: %e, app: %d \n",k, ppw->approx[ppw->index_ap_CCa]);
+    }
+
     /* interacting dark radiation free streaming approximation*/
     if (pba->has_idr == _TRUE_){
 
@@ -6986,7 +7098,7 @@ int perturb_total_stress_energy(
     /*Here the Einstein pert. equation is solved, requires the values of the matter sector*/
     if (pba->has_EDE_pert == _TRUE_) {
 
-      if (ppw->approx[ppw->index_ap_CCa] == (int)CCa_off) {
+      if ((ppw->approx[ppw->index_ap_sda] == (int)sda_off) && (ppw->approx[ppw->index_ap_CCa] == (int)CCa_off)) {
 
         delta_EDE = y[ppw->pv->index_pt_delta_EDE];
         theta_EDE = y[ppw->pv->index_pt_theta_EDE];
@@ -7157,7 +7269,7 @@ int perturb_total_stress_energy(
     
     /*New EDE*/ /*Change!!*/
     /*Here everything is added up. Note that we excluded the CC phase as there are no contributions in that case. This part is important as it describes the feedback of the EDE pert. into the gravitational sector.*/
-    if ((pba->has_EDE_pert == _TRUE_) && (ppw->approx[ppw->index_ap_CCa] == (int)CCa_off) ) {
+    if ((pba->has_EDE_pert == _TRUE_) && (ppw->approx[ppw->index_ap_CCa] == (int)CCa_off) && (ppw->approx[ppw->index_ap_sda] == (int)sda_off) ) {
       ppw->delta_rho = ppw->delta_rho + ppw->pvecback[pba->index_bg_rho_EDE2]*delta_EDE; //checked
       ppw->rho_plus_p_theta = ppw->rho_plus_p_theta + (1.+pba->three_eos_EDE/3.)*ppw->pvecback[pba->index_bg_rho_EDE2]*theta_EDE; //checked
       ppw->rho_plus_p_shear = ppw->rho_plus_p_shear + (1.+pba->three_eos_EDE/3.)*ppw->pvecback[pba->index_bg_rho_EDE2]*shear_EDE; //checked
@@ -7959,9 +8071,9 @@ int perturb_sources(
     /* New EDE */
     /*This part is relevant if we calculate matter transfer function as needed for sigma8*/
     if (ppt->has_source_delta_EDE == _TRUE_) {
-      if (ppw->approx[ppw->index_ap_CCa]==(int)CCa_off)
+      if ((ppw->approx[ppw->index_ap_sda] == (int)sda_off) &&(ppw->approx[ppw->index_ap_CCa]==(int)CCa_off))
         _set_source_(ppt->index_tp_delta_EDE) = y[ppw->pv->index_pt_delta_EDE];
-      else if (ppw->approx[ppw->index_ap_CCa]==(int)CCa_on)
+      else
 	_set_source_(ppt->index_tp_delta_EDE) = 0.0;
     }
 
@@ -8094,9 +8206,9 @@ int perturb_sources(
     /*New EDE*/
     /*same for theta*/
     if (ppt->has_source_theta_EDE == _TRUE_) {
-      if (ppw->approx[ppw->index_ap_CCa]==(int)CCa_off)
+      if ((ppw->approx[ppw->index_ap_sda]==(int)sda_off)&&(ppw->approx[ppw->index_ap_CCa]==(int)CCa_off))
         _set_source_(ppt->index_tp_theta_EDE) = y[ppw->pv->index_pt_theta_EDE];
-      else if (ppw->approx[ppw->index_ap_CCa]==(int)CCa_on)
+      else
 	_set_source_(ppt->index_tp_theta_EDE) = 0.0;
     }
 
@@ -8360,12 +8472,12 @@ int perturb_print_variables(double tau,
     /*New EDE*/
     /* Here we infer the perturbations for different approximations in order to print them in a file*/
     if (pba->has_EDE_pert == _TRUE_) {
-      if (ppw->approx[ppw->index_ap_CCa]==(int)CCa_off) {
+      if ((ppw->approx[ppw->index_ap_sda]==(int)sda_off)&&(ppw->approx[ppw->index_ap_CCa]==(int)CCa_off)) {
         delta_EDE = y[ppw->pv->index_pt_delta_EDE];
         theta_EDE = y[ppw->pv->index_pt_theta_EDE];
         shear_EDE = y[ppw->pv->index_pt_shear_EDE];
       }
-      else if (ppw->approx[ppw->index_ap_CCa]==(int)CCa_on) {
+      else {
         delta_EDE = 0.;
         theta_EDE = 0.;
         shear_EDE = 0.;
@@ -9546,7 +9658,7 @@ int perturb_derivs(double tau,
       
  
 
-      if  (ppw->approx[ppw->index_ap_CCa] == (int)CCa_off)  {
+      if  (ppw->approx[ppw->index_ap_sda] == (int)sda_off&&(ppw->approx[ppw->index_ap_CCa] == (int)CCa_off))  {
 
         /** - -----> EDE density */
         dy[pv->index_pt_delta_EDE] =
