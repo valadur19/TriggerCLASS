@@ -1254,7 +1254,6 @@ int input_read_parameters(
   class_read_double("three_cvis2_EDE",ppt->three_cvis2_EDE);
   class_read_double("EDE2_clock_ini",pba->EDE2_clock_ini);
   class_read_double("EDE2_clock_pert_ini",pba->EDE2_clock_pert_ini);
-  class_read_double("WKB_trigger_H_over_m",pba->WKB_trigger_H_over_m);
   class_read_double("Bubble_trigger_H_over_m",pba->Bubble_trigger_H_over_m);
   class_read_double("EDE2_clock_mass",pba->EDE2_clock_mass);
   class_read_double("Junction_tag", pba->Junction_tag)
@@ -3266,6 +3265,7 @@ int input_default_params(
   pba->Omega_EDE2 = 0.; 
   pba->Omega0_EDE2 = 0.;
   pba->decay_flag = _FALSE_;
+  pba->trigger_flag = _FALSE_;
   pba->Junction_tag = 1;
   pba->DMa_tag = 1;
   pba->EDE2_clock_ini = 0;

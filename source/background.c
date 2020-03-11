@@ -341,7 +341,7 @@ int background_functions(
   }
 
   /* Scalar field */
-  if (pba->has_scf == _TRUE_) {
+  if (pba->has_scf == _TRUE_ && pba->trigger_flag == _FALSE_) {
     phi = pvecback_B[pba->index_bi_phi_scf];
     phi_prime = pvecback_B[pba->index_bi_phi_prime_scf];
     pvecback[pba->index_bg_phi_scf] = phi; // value of the scalar field phi
@@ -502,7 +502,7 @@ int background_functions(
 
   /* Derivative of total pressure w.r.t. conformal time */
   pvecback[pba->index_bg_p_tot_prime] = a*pvecback[pba->index_bg_H]*dp_dloga;
-  if (pba->has_scf == _TRUE_){
+  if (pba->has_scf == _TRUE_ && pba->trigger_flag == _FALSE_){
     /** The contribution of scf was not added to dp_dloga, add p_scf_prime here: */
     pvecback[pba->index_bg_p_prime_scf] = pvecback[pba->index_bg_phi_prime_scf]*
       (-pvecback[pba->index_bg_phi_prime_scf]*pvecback[pba->index_bg_H]/a-2./3.*pvecback[pba->index_bg_dV_scf]);
@@ -1003,15 +1003,18 @@ int background_indices(
   class_define_index(pba->index_bg_rho_dr,pba->has_dr,index_bg,1);
 
   /* - indices for scalar field */
-  class_define_index(pba->index_bg_phi_scf,pba->has_scf,index_bg,1);
-  class_define_index(pba->index_bg_phi_prime_scf,pba->has_scf,index_bg,1);
-  class_define_index(pba->index_bg_V_scf,pba->has_scf,index_bg,1);
-  class_define_index(pba->index_bg_dV_scf,pba->has_scf,index_bg,1);
-  class_define_index(pba->index_bg_ddV_scf,pba->has_scf,index_bg,1);
-  class_define_index(pba->index_bg_rho_scf,pba->has_scf,index_bg,1);
-  class_define_index(pba->index_bg_p_scf,pba->has_scf,index_bg,1);
-  class_define_index(pba->index_bg_p_prime_scf,pba->has_scf,index_bg,1);
-
+  if (pba->has_scf == _TRUE_){
+    if (pba->trigger_flag == _FALSE_){
+      class_define_index(pba->index_bg_phi_scf,pba->has_scf,index_bg,1);
+      class_define_index(pba->index_bg_phi_prime_scf,pba->has_scf,index_bg,1);
+      class_define_index(pba->index_bg_V_scf,pba->has_scf,index_bg,1);
+      class_define_index(pba->index_bg_dV_scf,pba->has_scf,index_bg,1);
+      class_define_index(pba->index_bg_ddV_scf,pba->has_scf,index_bg,1);
+      class_define_index(pba->index_bg_rho_scf,pba->has_scf,index_bg,1);
+      class_define_index(pba->index_bg_p_scf,pba->has_scf,index_bg,1);
+      class_define_index(pba->index_bg_p_prime_scf,pba->has_scf,index_bg,1);
+    }
+  }
   /* - index for Lambda */
   class_define_index(pba->index_bg_rho_lambda,pba->has_lambda,index_bg,1);
 
@@ -1105,9 +1108,12 @@ int background_indices(
   class_define_index(pba->index_bi_rho_fld,pba->has_fld,index_bi,1);
 
   /* -> scalar field and its derivative wrt conformal time (Zuma) */
-  class_define_index(pba->index_bi_phi_scf,pba->has_scf,index_bi,1);
-  class_define_index(pba->index_bi_phi_prime_scf,pba->has_scf,index_bi,1);
-
+  if (pba->has_scf == _TRUE_){
+    if (pba->trigger_flag == _FALSE_){
+      class_define_index(pba->index_bi_phi_scf,pba->has_scf,index_bi,1);
+      class_define_index(pba->index_bi_phi_prime_scf,pba->has_scf,index_bi,1);
+    }
+  }
   /* End of {B} variables, now continue with {C} variables */
   pba->bi_B_size = index_bi;
 
@@ -1758,6 +1764,7 @@ int background_solve(
 
   /*New EDE*/ /*reset deycay_flag before integration starts*/
   pba->decay_flag = _FALSE_;
+  pba->trigger_flag = _FALSE_;
   
   while (pvecback_integration[pba->index_bi_a] < pba->a_today) {
 
@@ -1782,6 +1789,11 @@ int background_solve(
 
     if (pba->has_EDE_decay == _TRUE_){
        a=pvecback_integration[pba->index_bi_a];
+
+       /* Check if we can stop tracking the scf*/
+       if ((pba->EDE2_clock_mass * pba->Bubble_trigger_H_over_m > pvecback[pba->index_bg_H]*1.1)&&(pba->trigger_flag == _FALSE_)){
+	 pba->trigger_flag = _TRUE_; //Stop tracking the trigger bg field 
+       }
 
        /* Check if EDE has decayed. */
        if ((pba->EDE2_clock_mass * pba->Bubble_trigger_H_over_m > pvecback[pba->index_bg_H])&&(pba->decay_flag == _FALSE_)) {
@@ -1979,7 +1991,7 @@ int background_solve(
 
   /*New EDE*/ /*Calculate abundance of scf and EDE today*/
   if (pba->has_scf == _TRUE_ && pba->has_EDE_decay ==_TRUE_){
-    pba->Omega0_scf = pvecback[pba->index_bg_rho_scf]/pvecback[pba->index_bg_rho_crit];
+    pba->Omega0_scf = 0; //pvecback[pba->index_bg_rho_scf]/pvecback[pba->index_bg_rho_crit];
   }
   
   if (pba->has_EDE_decay ==_TRUE_){
@@ -2010,7 +2022,7 @@ int background_solve(
       printf("     -> Junction_tag: %d, DMa_tag: %d, Bubble_trigger: %f \n", pba->Junction_tag, pba->DMa_tag, pba->Bubble_trigger_H_over_m);
       printf("     -> H/H0-1: %e \n",pvecback[pba->index_bg_H]/pba->H0-1);
       printf("     -> Omega_scf = %g, scf_ini = %g, scf_pert_ini = %g \n",
-             pvecback[pba->index_bg_rho_scf]/pvecback[pba->index_bg_rho_crit],pba->EDE2_clock_ini, pba->EDE2_clock_pert_ini);   
+             pba->Omega0_scf,pba->EDE2_clock_ini, pba->EDE2_clock_pert_ini);   
     }
     
     if (pba->has_scf == _TRUE_ && pba->has_EDE_decay == _FALSE_){
@@ -2188,10 +2200,11 @@ int background_initial_conditions(
   /* phi'_ini = -1/5 * phi_ini a^2 m^2  / (a H) where H = sqrt(rho) ins class conventions. */
   
   if(pba->has_EDE_decay == _TRUE_ && pba->has_scf == _TRUE_){
-    
-    pvecback_integration[pba->index_bi_phi_scf] = pba->phi_ini_scf;
-    pvecback_integration[pba->index_bi_phi_prime_scf] = -1./5. * pba->phi_ini_scf *pow(pba->EDE2_clock_mass ,2) / pow(rho_rad,0.5) * a;
-    // printf("initial value: %e; \n",pvecback_integration[pba->index_bi_phi_prime_scf]);
+    if (pba->trigger_flag == _FALSE_){
+      pvecback_integration[pba->index_bi_phi_scf] = pba->phi_ini_scf;
+      pvecback_integration[pba->index_bi_phi_prime_scf] = -1./5. * pba->phi_ini_scf *pow(pba->EDE2_clock_mass ,2) / pow(rho_rad,0.5) * a;
+      // printf("initial value: %e; \n",pvecback_integration[pba->index_bi_phi_prime_scf]);
+    }
   }
   else if(pba->has_scf == _TRUE_){
     scf_lambda = pba->scf_parameters[0];
@@ -2441,15 +2454,28 @@ int background_output_data(
     class_store_double(dataptr,pvecback[pba->index_bg_rho_dcdm],pba->has_dcdm,storeidx);
     class_store_double(dataptr,pvecback[pba->index_bg_rho_dr],pba->has_dr,storeidx);
 
-    class_store_double(dataptr,pvecback[pba->index_bg_rho_scf],pba->has_scf,storeidx);
-    class_store_double(dataptr,pvecback[pba->index_bg_p_scf],pba->has_scf,storeidx);
-    class_store_double(dataptr,pvecback[pba->index_bg_p_prime_scf],pba->has_scf,storeidx);
-    class_store_double(dataptr,pvecback[pba->index_bg_phi_scf],pba->has_scf,storeidx);
-    class_store_double(dataptr,pvecback[pba->index_bg_phi_prime_scf],pba->has_scf,storeidx);
-    class_store_double(dataptr,pvecback[pba->index_bg_V_scf],pba->has_scf,storeidx);
-    class_store_double(dataptr,pvecback[pba->index_bg_dV_scf],pba->has_scf,storeidx);
-    class_store_double(dataptr,pvecback[pba->index_bg_ddV_scf],pba->has_scf,storeidx);
-
+    if (pba->has_scf == _TRUE_){
+      if (pba->trigger_flag == _FALSE_){
+	class_store_double(dataptr,pvecback[pba->index_bg_rho_scf],pba->has_scf,storeidx);
+	class_store_double(dataptr,pvecback[pba->index_bg_p_scf],pba->has_scf,storeidx);
+	class_store_double(dataptr,pvecback[pba->index_bg_p_prime_scf],pba->has_scf,storeidx);
+	class_store_double(dataptr,pvecback[pba->index_bg_phi_scf],pba->has_scf,storeidx);
+	class_store_double(dataptr,pvecback[pba->index_bg_phi_prime_scf],pba->has_scf,storeidx);
+	class_store_double(dataptr,pvecback[pba->index_bg_V_scf],pba->has_scf,storeidx);
+	class_store_double(dataptr,pvecback[pba->index_bg_dV_scf],pba->has_scf,storeidx);
+	class_store_double(dataptr,pvecback[pba->index_bg_ddV_scf],pba->has_scf,storeidx);
+      }
+      else if(pba->trigger_flag == _TRUE_){
+	class_store_double(dataptr,0,pba->has_scf,storeidx);
+	class_store_double(dataptr,0,pba->has_scf,storeidx);
+	class_store_double(dataptr,0,pba->has_scf,storeidx);
+	class_store_double(dataptr,0,pba->has_scf,storeidx);
+	class_store_double(dataptr,0,pba->has_scf,storeidx);
+	class_store_double(dataptr,0,pba->has_scf,storeidx);
+	class_store_double(dataptr,0,pba->has_scf,storeidx);
+	class_store_double(dataptr,0,pba->has_scf,storeidx);
+      }
+    }
     class_store_double(dataptr,pvecback[pba->index_bg_rho_tot],_TRUE_,storeidx);
     class_store_double(dataptr,pvecback[pba->index_bg_p_tot],_TRUE_,storeidx);
     class_store_double(dataptr,pvecback[pba->index_bg_p_tot_prime],_TRUE_,storeidx);
@@ -2562,7 +2588,7 @@ int background_derivs(
     /*Flo*/ /* WKB approximation to avoid problems with  oscillations at very late times*/
 
     /*We turn scf off once H/mass < Bubble_trigger_h_over_m with little safety margin*/
-    if ( pba->EDE2_clock_mass * pba->Bubble_trigger_H_over_m <  pvecback[pba->index_bg_H]*(1.01)) {
+    if (pba->trigger_flag == _FALSE_) {
       /*normal evolution*/
       dy[pba->index_bi_phi_scf] = y[pba->index_bi_phi_prime_scf];
 
@@ -2570,12 +2596,6 @@ int background_derivs(
       (2*pvecback[pba->index_bg_H]*y[pba->index_bi_phi_prime_scf]
        + y[pba->index_bi_a]*dV_scf(pba,y[pba->index_bi_phi_scf])) ;
     } 
-    else{
-      dy[pba->index_bi_phi_scf] = 0 ;
-      dy[pba->index_bi_phi_prime_scf] = 0;
-      y[pba->index_bi_phi_scf] =0.;
-      y[pba->index_bi_phi_prime_scf] =0.;
-    }
   }
 
   return _SUCCESS_;
