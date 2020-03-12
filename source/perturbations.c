@@ -510,7 +510,7 @@ int perturb_init(
       printf("Computing sources\n");
   }
 
-  if (pba->has_EDE_pert){
+  if (pba->has_EDE_pert && ppt->perturbations_verbose > 1){
     printf("  -> EDE perturbation details:\n");
     printf("     -> 3ceff2: %f, 3cvis2: %f \n",ppt->three_ceff2_EDE,ppt->three_cvis2_EDE);
     printf("     -> Junction_tag: %d \n",pba->Junction_tag);

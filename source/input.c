@@ -1269,16 +1269,23 @@ int input_read_parameters(
       class_read_double("background_verbose",pba->background_verbose);
       class_read_double("back_integration_stepsize",ppr->back_integration_stepsize);
 
-      if (pba->background_verbose >1)
-	printf("First run to estimate Omega0_EDE...\n");
 
       pba->Omega0_lambda= 1. - pba->Omega0_k - Omega_tot;
-      class_call(find_z_decay(ppr,pba,errmsg),errmsg,errmsg);
       
-      if (pba->background_verbose >1)
-	printf("Second run to estimate Omega0_EDE...\n");
-	
+      if (pba->background_verbose >1){
+	printf("trigger mass: %f, Omega_EDE: %e, EOS: %f \n",pba->EDE2_clock_mass,pba->Omega_EDE2,pba->three_eos_EDE);
+     	printf("First run to estimate Omega0_EDE with Omega0_lambda: %e \n",pba->Omega0_lambda);
+      }
+      
+      
+      
+      class_call(find_z_decay(ppr,pba,errmsg),errmsg,errmsg);
+
       pba->Omega0_lambda= 1. - pba->Omega0_k - Omega_tot - pba->Omega0_EDE2 - pba->Omega0_scf;
+      if (pba->background_verbose >1)
+	printf("Second run to estimate Omega0_EDE with Omega0_lambda: %e \n",pba->Omega0_lambda);
+      
+      
       class_call(find_z_decay(ppr,pba,errmsg),errmsg,errmsg);
       
       
