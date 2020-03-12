@@ -74,9 +74,15 @@ struct background
 
   short DMa_tag;
 
+  double WKB_trigger_H_over_m;
 
   double Bubble_trigger_H_over_m;
 
+  short WKB_flag;
+
+  double rho_scf_WKB;
+
+  double a_WKB;
   
   double EDE2_clock_mass;
 
@@ -86,12 +92,8 @@ struct background
 
   double three_eos_EDE;
 
-  short decay_flag;
-
-  short trigger_flag;
-  
+  short decay_flag; 
   double tau_decay;
-  
   double a_decay;
  
 

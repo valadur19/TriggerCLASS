@@ -510,6 +510,14 @@ int perturb_init(
       printf("Computing sources\n");
   }
 
+  if (pba->has_EDE_pert){
+    printf("  -> EDE perturbation details:\n");
+    printf("     -> 3ceff2: %f, 3cvis2: %f \n",ppt->three_ceff2_EDE,ppt->three_cvis2_EDE);
+    printf("     -> Junction_tag: %d \n",pba->Junction_tag);
+    printf("     -> EDE sub dom condition: %f \n",ppr->sub_dom_cond);
+    
+  }
+
   class_test((ppt->gauge == synchronous) && (pba->has_cdm == _FALSE_),
              ppt->error_message,
              "In the synchronous gauge, it is not self-consistent to assume no CDM: the later is used to define the initial timelike hypersurface. You can either add a negligible amount of CDM or switch to newtonian gauge");
@@ -6427,7 +6435,7 @@ int perturb_approximations(
     }
 
     /*New EDE*/
-    /*define sd (sub dominant) approximation / turned on when after decat EDE becomes highly sub dominant and perturbations need not be tracked anymore (after decay!)*/
+    /*define sd (sub dominant) approximation / turned on when after decay EDE becomes highly sub dominant and perturbations need not be tracked anymore (after decay!)*/
     if (pba->has_EDE_pert == _TRUE_){
       if ((1./ppw->pvecback[pba->index_bg_a]-1. < pba->z_decay*0.9) && (ppw->pvecback[pba->index_bg_rho_EDE2]/pow(ppw->pvecback[pba->index_bg_H],2)< ppr->sub_dom_cond )) {
 	ppw->approx[ppw->index_ap_sda] = (int)sda_on;
