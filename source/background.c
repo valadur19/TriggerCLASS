@@ -1808,12 +1808,12 @@ int background_solve(
 	 }
 	 }
        /*Flo:  make integration finer around decay time*/
-       /*delta_z=2*ppr->back_integration_stepsize/a;
+       delta_z=2*ppr->back_integration_stepsize/a;
        if ((1./a-1. <   pba->z_decay + delta_z) && (1./a-1. > pba->z_decay - delta_z) && (pba->z_decay >1.)  ){
 	 //printf("decay: %f, a: %e, z_decay: %e, counter: %d \n", 1./a - 1.,a,pba->z_decay,d);
 	 d= abs(1./a-1.-pba->z_decay)/delta_z;
 	 tau_end = tau_start + ppr->back_integration_stepsize/(1+ppr->decay_res_enhancement*exp(-d*6)) / (pvecback_integration[pba->index_bi_a]*pvecback[pba->index_bg_H]);
-	 }*/
+	 }
        
     }
 
