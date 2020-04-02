@@ -561,6 +561,9 @@ int background_functions(
 
 }
 
+
+
+
 /**
  * Single place where the fluid equation of state is
  * defined. Parameters of the function are passed through the
@@ -589,6 +592,10 @@ int background_w_fld(
 
   /** - first, define the function w(a) */
   switch (pba->fluid_equation_of_state) {
+
+  case ADE:
+    *w_fld = (1. + pba->three_eos_ADE/3.)/pow((1. + pow((pba->a_ADE/a),(3.+pba->three_eos_ADE)/0.5)),0.5) - 1.0;
+    break;
   case CLP:
     *w_fld = pba->w0_fld + pba->wa_fld * (1. - a / pba->a_today);
     break;
@@ -624,6 +631,9 @@ int background_w_fld(
       analytic expression of the derivative of the previous
       function, let's use it! */
   switch (pba->fluid_equation_of_state) {
+  case ADE:
+    *dw_over_da_fld = 3. * pow(1+pba->three_eos_ADE / 3.,2.) / a * pow((pba->a_ADE/a),(3. + pba->three_eos_ADE)/0.5) / pow(1. + pow((pba->a_ADE/a),(3. + pba->three_eos_ADE)/0.5),1.5);
+    break;
   case CLP:
     *dw_over_da_fld = - pba->wa_fld / pba->a_today;
     break;
@@ -647,6 +657,9 @@ int background_w_fld(
         a=a_ini, using for instance Romberg integration. It should be
         fast, simple, and accurate enough. */
   switch (pba->fluid_equation_of_state) {
+  case ADE:
+    *integral_fld = 0.0;
+    break;
   case CLP:
     *integral_fld = 3.*((1.+pba->w0_fld+pba->wa_fld)*log(pba->a_today/a) + pba->wa_fld*(a/pba->a_today-1.));
     break;
@@ -980,6 +993,9 @@ int background_indices(
   if (pba->Omega0_fld != 0.)
     pba->has_fld = _TRUE_;
 
+  if (pba->f_ADE >0.)
+    pba->has_fld = _TRUE_;
+  
   if (pba->Omega0_ur != 0.)
     pba->has_ur = _TRUE_;
 
@@ -1799,6 +1815,7 @@ int background_solve(
 
   /*reset deycay_flag before integration loop starts, decay_flage == _FALSE_ means that the decay has not yet taken place.*/
   pba->decay_flag = _FALSE_;
+  pba->decay_flag_ADE = _FALSE_;
 
 
   /** - loop over integration steps: call background_functions(), find step size, save data in growTable with gt_add(), perform one step with generic_integrator(), store new value of tau */
@@ -1858,9 +1875,13 @@ int background_solve(
 	 tau_end = tau_start + ppr->back_integration_stepsize/(1+ppr->decay_res_enhancement*exp(-d*6)) / (pvecback_integration[pba->index_bi_a]*pvecback[pba->index_bg_H]);
        }  
     }
-
-
-
+    a=pvecback_integration[pba->index_bi_a];
+    if (a>pba->a_ADE && pba->decay_flag_ADE == _FALSE_ && pba->f_ADE > 0){
+      printf("f_ADE: %f \n", pvecback[pba->index_bg_rho_fld] / pow(pvecback[pba->index_bg_H],2) );
+      pba->decay_flag_ADE=_TRUE_;
+      pba->f_ADE =  pvecback[pba->index_bg_rho_fld] / pow(pvecback[pba->index_bg_H],2);
+    }
+    
     class_test((tau_end-tau_start)/tau_start < ppr->smallest_allowed_variation,
                pba->error_message,
                "integration step: relative change in time =%e < machine precision : leads either to numerical error or infinite loop",(tau_end-tau_start)/tau_start);
@@ -2041,6 +2062,10 @@ int background_solve(
   
   if (pba->has_NEDE ==_TRUE_){
     pba->Omega0_NEDE = pvecback[pba->index_bg_rho_NEDE]/pvecback[pba->index_bg_rho_crit];
+  }
+
+  if (pba->has_fld == _TRUE_ && pba->f_ADE > 0){
+    pba->Omega0_fld = pvecback[pba->index_bg_rho_fld]/pvecback[pba->index_bg_rho_crit];
   }
 
   
@@ -2224,18 +2249,22 @@ int background_initial_conditions(
     /* rho_fld today */
     rho_fld_today = pba->Omega0_fld * pow(pba->H0,2);
 
-    /* integrate rho_fld(a) from a_ini to a_0, to get rho_fld(a_ini) given rho_fld(a0) */
-    class_call(background_w_fld(pba,a,&w_fld,&dw_over_da_fld,&integral_fld), pba->error_message, pba->error_message);
-
-    /* Note: for complicated w_fld(a) functions with no simple
-       analytic integral, this is the place were you should compute
-       numerically the simple 1d integral [int_{a_ini}^{a_0} 3
-       [(1+w_fld)/a] da] (e.g. with the Romberg method?) instead of
-       calling background_w_fld */
-
-    /* rho_fld at initial time */
-    pvecback_integration[pba->index_bi_rho_fld] = rho_fld_today * exp(integral_fld);
-
+    if (pba->fluid_equation_of_state == ADE){
+      pvecback_integration[pba->index_bi_rho_fld] = pba->Omega_ini_ADE * pow(pba->H0,2);
+    }
+    else{
+      /* integrate rho_fld(a) from a_ini to a_0, to get rho_fld(a_ini) given rho_fld(a0) */
+      class_call(background_w_fld(pba,a,&w_fld,&dw_over_da_fld,&integral_fld), pba->error_message, pba->error_message);
+      
+      /* Note: for complicated w_fld(a) functions with no simple
+	 analytic integral, this is the place were you should compute
+	 numerically the simple 1d integral [int_{a_ini}^{a_0} 3
+	 [(1+w_fld)/a] da] (e.g. with the Romberg method?) instead of
+	 calling background_w_fld */
+      
+      /* rho_fld at initial time */
+      pvecback_integration[pba->index_bi_rho_fld] = rho_fld_today * exp(integral_fld);
+    }
   }
 
   /** - Fix initial value of \f$ \phi, \phi' \f$

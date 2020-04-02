@@ -2651,7 +2651,7 @@ int perturb_workspace_init(
     }
 
     if (pba->has_NEDE_pert == _TRUE_) {
-      /*sda_on: NEDE has decayed sufficiently far that we do not need to track its perturbations.*/
+      /*sda_on: NEDE has decayed enough such that we do not need to track its perturbations any more because theor gravitatinal feedback can be neglected.*/
       /*sda_off: NEDE is not yet subdominant and we therefore need to track its perturbations*/
       ppw->approx[ppw->index_ap_sda]=(int)sda_off;
     }
@@ -3837,7 +3837,7 @@ int perturb_vector_init(
 	/* trigger field velocity */
 	class_define_index(ppv->index_pt_phi_prime_trigger,pba->has_NEDE_trigger,index_pt,1);
       }
-      /*New EDE: Only track perturbations in NEDE fluid  beforeafter decay and before NEDE is highly subdominant.  */
+      /*New EDE: Only track perturbations in NEDE fluid after decay and before NEDE is highly subdominant.  */
       if  ((ppw->approx[ppw->index_ap_CCa] == (int)CCa_off) && (ppw->approx[ppw->index_ap_sda] == (int)sda_off))   {
 	/* NEDE pert density */
 	class_define_index(ppv->index_pt_delta_NEDE,_TRUE_,index_pt,1);
@@ -4446,7 +4446,7 @@ int perturb_vector_init(
 	
 	
 	/*New EDE*/
-	/*EDE and trigger perturbations not affectecd by tight coupling approximation, so we just copy the values from the previous integration step*/
+	/*EDE and trigger perturbations not affectecd by tight coupling approximation, so we just copy the values from the previous integration step.*/
 	if (pba->has_NEDE_pert == _TRUE_ ) {
 	  if  ( (ppw->approx[ppw->index_ap_sda] == (int)sda_off) && (ppw->approx[ppw->index_ap_CCa] == (int)CCa_off)){
 	    ppv->y[ppv->index_pt_delta_NEDE] =
@@ -4541,7 +4541,7 @@ int perturb_vector_init(
         }
 
 		/*New EDE*/
-	/*EDE and trigger perturbations not affectecd by radiation streamin approximation, so we just copy the values from the previous integration step*/
+	/*EDE and trigger perturbations not affectecd by radiation streaming approximation, so we just copy the values from the previous integration step.*/
 	if (pba->has_NEDE_pert == _TRUE_ ) {
 	  if  ( (ppw->approx[ppw->index_ap_sda] == (int)sda_off) && (ppw->approx[ppw->index_ap_CCa] == (int)CCa_off)){
 	    ppv->y[ppv->index_pt_delta_NEDE] =
@@ -4675,7 +4675,7 @@ int perturb_vector_init(
             }
           }
 	  /*New EDE*/
-	  /*EDE and trigger perturbations not affectecd by ur fluid approximation, so we just copy the values from the previous integration step*/
+	  /*EDE and trigger perturbations not affectecd by ur fluid approximation, so we just copy the values from the previous integration step.*/
 	  if (pba->has_NEDE_pert == _TRUE_ ) {
 	    if  ( (ppw->approx[ppw->index_ap_sda] == (int)sda_off) && (ppw->approx[ppw->index_ap_CCa] == (int)CCa_off)){
 	      ppv->y[ppv->index_pt_delta_NEDE] =
@@ -4793,7 +4793,7 @@ int perturb_vector_init(
             }
           }
 	  /*New EDE*/
-	  /*EDE and trigger perturbations not affectecd by this approximation, so we just copy the values from the previous integration step*/
+	  /*EDE and trigger perturbations not affectecd by this approximation, so we just copy the values from the previous integration step.*/
 	  if (pba->has_NEDE_pert == _TRUE_ ) {
 	    if  ( (ppw->approx[ppw->index_ap_sda] == (int)sda_off) && (ppw->approx[ppw->index_ap_CCa] == (int)CCa_off)){
 	      ppv->y[ppv->index_pt_delta_NEDE] =
@@ -4928,7 +4928,7 @@ int perturb_vector_init(
             }
           }
 	  	  /*New EDE*/
-	  /*EDE and trigger perturbations not affectecd by ur fluid approximation, so we just copy the values from the previous integration step*/
+	  /*EDE and trigger perturbations not affectecd by ur fluid approximation, so we just copy the values from the previous integration step.*/
 	  if (pba->has_NEDE_pert == _TRUE_ ) {
 	    if  ( (ppw->approx[ppw->index_ap_sda] == (int)sda_off) && (ppw->approx[ppw->index_ap_CCa] == (int)CCa_off)){
 	      ppv->y[ppv->index_pt_delta_NEDE] =
@@ -5126,7 +5126,7 @@ int perturb_vector_init(
         }
       }
       /*New EDE*/
-      /*Here we sewt the initial conditions for all our NEDE fluid modes / note that all other sectors are unaffected */
+      /*Here we sewt the initial conditions for all our NEDE fluid modes / note that all other sectors are unaffected and hence are just copied. */
       if (pba->has_NEDE_pert == _TRUE_) {
 	if ((pa_old[ppw->index_ap_CCa] == (int)CCa_on) && (ppw->approx[ppw->index_ap_CCa] == (int)CCa_off)) {
 
@@ -5231,9 +5231,9 @@ int perturb_vector_init(
           }
 	  
 	  /*New EDE*/ /*important*/
-	  /*here we set the matching conditions for EDE perturbations: before transition perturbations are zero and after transition they start with value set by fluctuation in transition surface / see Israel's equations in our paper*/
+	  /*Here, we set the matching conditions for EDE perturbations: before transition perturbations are zero and after transition they start with value set by fluctuation in transition surface / see Israel's equations in our paper*/
 
-	  /*Nothing needs to be done if NEDE is exrremly subdominant*/
+	  /*Nothing needs to be done if NEDE is extremly subdominant*/
 	  if (ppw->approx[ppw->index_ap_sda] == (int)sda_off){
 
 	    a = ppw->pvecback[pba->index_bg_a];
@@ -5241,13 +5241,15 @@ int perturb_vector_init(
 	    if (pba->has_NEDE_trigger == _TRUE_) 
 	      delta_phi_over_phi_prime = ppw->pv->y[ppw->pv->index_pt_phi_trigger] / (ppw->pvecback[pba->index_bg_phi_prime_trigger] );
 	    else
-	      delta_phi_over_phi_prime = 0; //In absence of scalar field we use trivial junction conditions as there is no better choice available.  
+	      delta_phi_over_phi_prime = 0; //In absence of trigger field, we use trivial junction conditions as there is no better choice available. This case does not correspond to NEDE.  
 	  
   	    if (pba->Junction_tag == 0){
+	      // Trivial junction condition to check their influcence on final result.
 	      amp_rel = 0.0;
 	      sigma_NEDE = 0.0;
 	    }
 	    else if(pba->Junction_tag == 1){
+	      // Standard case for NEDE. We assume vanishing shear perturbations (sigma_NEDE = 0).
 	      amp_rel = 1.;
 	      sigma_NEDE = 0.0;
 	    }
@@ -5291,6 +5293,7 @@ int perturb_vector_init(
             }
           }
         }
+
 	/*New EDE: Here we stop tracking the evolution of NEDE perturbations as the NEDE fluid has becomes sufficiently suppressed.*/
 	if ((pa_old[ppw->index_ap_sda] == (int)sda_off) && (ppw->approx[ppw->index_ap_sda] == (int)sda_on)) {
 
@@ -5699,7 +5702,7 @@ int perturb_initial_conditions(struct precision * ppr,
     }
 
     /*New EDE*/
-    /*NEDE is irrelevant at the time where perturbations are initialised.*/
+    /*NEDE is irrelevant at the time where perturbations are initialised, like all non-radiation components of the fluid.*/
 
 
     if (pba->has_idr == _TRUE_) {
@@ -6102,7 +6105,7 @@ int perturb_initial_conditions(struct precision * ppr,
            +ppw->pvecback[pba->index_bg_phi_prime_scf]*alpha_prime);
       }
 
-      /*New EDE: Convert inital conditions to Newtonian gauge / danger: we never have tested this part as we only use synchronous gauge*/
+      /*New EDE: Convert inital conditions to Newtonian gauge / DANGER: we never have tested this part, as we only use synchronous gauge, use with care*/
       if (pba->has_NEDE_pert == _TRUE_) {
 	
 	/* New EDE: trigger field like scf above */
@@ -8176,7 +8179,7 @@ int perturb_sources(
     }
 
     /* New EDE */
-    /*This part is relevant if we calculate matter transfer function for ndividual components*/
+    /*This part is relevant if we calculate matter transfer function for individual components, which we never did so far.*/
     if (ppt->has_source_delta_NEDE == _TRUE_) {
       if ((ppw->approx[ppw->index_ap_sda] == (int)sda_off) &&(ppw->approx[ppw->index_ap_CCa]==(int)CCa_off))
         _set_source_(ppt->index_tp_delta_NEDE) = y[ppw->pv->index_pt_delta_NEDE];
@@ -8773,6 +8776,8 @@ int perturb_print_variables(double tau,
     if (ppt->gauge == synchronous) {
 
       /* density and velocity perturbations (comment out if you wish to keep synchronous variables) */
+
+      /*NEDE: we stay in synchronous gauge. So this part has been commented out.*/
 
       /*      delta_g -= 4. * pvecback[pba->index_bg_H]*pvecback[pba->index_bg_a]*alpha;
       theta_g += k*k*alpha;
@@ -9910,7 +9915,7 @@ int perturb_derivs(double tau,
     
     
     /* New EDE */
-    /*These are the actual perturbation equations*/
+    /* These are the actual perturbation equations. See our paper or Eq. 22 and 23 in arXiv: 1806.10608v1. */
     
     if (pba->has_NEDE_pert == _TRUE_) {
 
@@ -9919,17 +9924,21 @@ int perturb_derivs(double tau,
         /** - -----> NEDE density */
         dy[pv->index_pt_delta_NEDE] =
           // standard term
-          -(1. + pba->three_eos_NEDE/3.)*(y[pv->index_pt_theta_NEDE] + metric_continuity);
-          // non-standard term, non-zero if if ceff2_ur not 1/3
+          -(1. + pba->three_eos_NEDE/3.)*(y[pv->index_pt_theta_NEDE] + metric_continuity)
 	+(pba->three_eos_NEDE - ppt->three_ceff2_NEDE)*a_prime_over_a*(y[pv->index_pt_delta_NEDE] + (3. + pba->three_eos_NEDE)*a_prime_over_a*y[pv->index_pt_theta_NEDE]/k/k);
 
         /** - -----> NEDE velocity */
         dy[pv->index_pt_theta_NEDE] =
-          // standard term with extra coefficient (3 ceff2_ur), normally equal to one
-          k2*(ppt->three_ceff2_NEDE*y[pv->index_pt_delta_NEDE]/(3.+pba->three_eos_NEDE)-4.*s2_squared*pba->three_eos_NEDE / (3. + pba->three_eos_NEDE) *y[pv->index_pt_shear_NEDE]) + metric_euler
-          // non-standard term, non-zero if ceff2_ur not 1/3
-          -(1.-ppt->three_ceff2_NEDE)*a_prime_over_a*y[pv->index_pt_theta_NEDE];
-          /* Shear a la Hu */
+	  //standard term
+          k2*(ppt->three_ceff2_NEDE*y[pv->index_pt_delta_NEDE]/(3.+pba->three_eos_NEDE)
+	      //This term is only non-vanishing in presence of shear/viscosity
+	      -4.*s2_squared*pba->three_eos_NEDE / (3. + pba->three_eos_NEDE) *y[pv->index_pt_shear_NEDE])
+	  //standard term
+	  + metric_euler - (1.-ppt->three_ceff2_NEDE)*a_prime_over_a*y[pv->index_pt_theta_NEDE];
+	// metric_euler=0 in synchronous gauge
+	/* Shear a la Hu / see paper arXiv: 9801234v2*/
+	/*NEDE: Normally we set ppt->three_cvis2_NEDE = 0 which implies a vanishing shear for trivial initial conditions. But we can turn it on if we want to.*/
+	//metric_shear = (h_prime+6eta_prime)/2 in synchronous gauge
 	dy[pv->index_pt_shear_NEDE] =
 	  -3.*a_prime_over_a*y[pv->index_pt_shear_NEDE]
 	  +2./3.*ppt->three_cvis2_NEDE / pba->three_eos_NEDE*(y[pv->index_pt_theta_NEDE]+metric_shear);    

@@ -20,7 +20,7 @@ enum spatial_curvature {flat,open,closed};
 
 /** list of possible parametrisations of the DE equation of state */
 
-enum equation_of_state {CLP,EDE};
+enum equation_of_state {ADE,CLP,EDE};
 
 /**
  * All background parameters and evolution that other modules need to know.
@@ -62,6 +62,11 @@ struct background
   double Omega0_fld; /**< \f$ \Omega_{0 de} \f$: fluid */
 
 
+  double three_eos_ADE;
+  double a_ADE;
+  double Omega_ini_ADE;
+  double f_ADE;
+  
   /*New EDE  before decay*/
   double Omega_NEDE;
 
@@ -93,6 +98,7 @@ struct background
 
   /* New EDE decay flag */
   short decay_flag;
+  short decay_flag_ADE;
 
   /* New EDE decay time */
   double tau_decay;

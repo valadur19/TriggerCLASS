@@ -277,11 +277,11 @@ int input_init(
    */
 
   char * const target_namestrings[] = {"100*theta_s","Omega_dcdmdr","omega_dcdmdr",
-                                       "Omega_scf","Omega_ini_dcdm","omega_ini_dcdm","sigma8"};
+                                       "Omega_scf","Omega_ini_dcdm","omega_ini_dcdm","sigma8","f_ADE"};
   char * const unknown_namestrings[] = {"h","Omega_ini_dcdm","Omega_ini_dcdm",
-                                        "scf_shooting_parameter","Omega_dcdmdr","omega_dcdmdr","A_s"};
+                                        "scf_shooting_parameter","Omega_dcdmdr","omega_dcdmdr","A_s","Omega_ini_ADE"};
   enum computation_stage target_cs[] = {cs_thermodynamics, cs_background, cs_background,
-                                        cs_background, cs_background, cs_background, cs_nonlinear};
+                                        cs_background, cs_background, cs_background, cs_nonlinear, cs_background};
 
   int input_verbose = 0, int1, aux_flag, shooting_failed=_FALSE_;
 
@@ -300,6 +300,7 @@ int input_init(
                errmsg,
                errmsg);
     if (flag1 == _TRUE_){
+      //printf("Found target: %s\n",target_namestrings[index_target]);
       /** - --> input_auxillary_target_conditions() takes care of the case where for
           instance Omega_dcdmdr is set to 0.0.
       */
@@ -310,7 +311,7 @@ int input_init(
                                                    errmsg),
                  errmsg, errmsg);
       if (aux_flag == _TRUE_){
-        //printf("Found target: %s\n",target_namestrings[index_target]);
+        printf("Found target: %s\n",target_namestrings[index_target]);
         target_indices[unknown_parameters_size] = index_target;
         fzw.required_computation_stage = MAX(fzw.required_computation_stage,target_cs[index_target]);
         unknown_parameters_size++;
@@ -1300,8 +1301,19 @@ int input_read_parameters(
     Omega_tot += pba->Omega0_trigger;
   }
   
-
-
+  /* ADE */
+  class_read_double("f_ADE",pba->f_ADE);
+  
+  if (pba->f_ADE > 0) {
+    class_read_double("a_ADE",pba->a_ADE);
+    class_read_double("Omega_ini_ADE",pba->Omega_ini_ADE);
+    class_read_double("three_eos_ADE",pba->three_eos_ADE);
+    class_read_double("three_ceff2_EDE",ppt->three_ceff2_ADE);
+    class_read_double("Omega0_fld",pba->Omega0_fld);
+    pba->fluid_equation_of_state = ADE;
+    pba->cs2_fld = ppt->three_ceff2_ADE / 3.;
+    pba->Omega0_fld = 0.0; //Use Romberg in future
+  }
   
   /** - Omega_0_lambda (cosmological constant), Omega0_fld (dark energy fluid), Omega0_scf (scalar field) */
 
@@ -1374,7 +1386,7 @@ int input_read_parameters(
              errmsg,
              "It looks like you want to fulfil the closure relation sum Omega = 1 using the scalar field, so you have to specify both Omega_lambda and Omega_fld in the .ini file");
 
-  if (pba->Omega0_fld != 0.) {
+  if (pba->Omega0_fld != 0. && pba->f_ADE == 0) {
 
     class_call(parser_read_string(pfc,
                                   "use_ppf",
@@ -3275,7 +3287,12 @@ int input_default_params(
 
   pba->shooting_failed = _FALSE_;
 
-
+  pba->three_eos_ADE = 3.0;
+  pba->a_ADE = 0;
+  pba->Omega_ini_ADE = 0.0;
+  pba->f_ADE = 0.0;
+  ppt->three_ceff2_ADE = 3.0;
+  
   /* - New EDE parameters */
   pba->Omega_trigger_decay = 0.;
   pba->three_eos_NEDE = 1.;
@@ -3729,6 +3746,10 @@ int input_try_unknown_parameters(double * unknown_parameter,
   struct output op;           /* for output files */
 
   int i;
+  double f_ADE_temp;
+  double tau_of_z_ADE;
+  double * pvecback;
+  int last_index=0;
   double rho_dcdm_today, rho_dr_today;
   struct fzerofun_workspace * pfzw;
   int input_verbose;
@@ -3924,6 +3945,22 @@ int input_try_unknown_parameters(double * unknown_parameter,
     case sigma8:
       output[i] = nl.sigma8[nl.index_pk_m]-pfzw->target_value[i];
       break;
+    case f_ADE:
+      //class_call(background_tau_of_z(&ba,(1./ba.a_ADE)-1.,&tau_of_z_ADE), ba.error_message, errmsg);      
+      
+      //class_alloc(pvecback,ba.bg_size*sizeof(double),ba.error_message);
+      //class_call(background_at_tau(&ba,
+      //                         tau_of_z_ADE,
+      //                         ba.short_info,
+      //                         ba.inter_normal,
+      //                         &last_index,
+      ///                         pvecback),
+      //      ba.error_message, errmsg);
+      //f_ADE_temp=pvecback[ba.index_bg_rho_fld]/pow(pvecback[ba.index_bg_H],2);
+      free(pvecback);
+      //ba.Omega0_fld=ba.background_table[(ba.bt_size-1)*ba.bg_size+ba.index_bg_rho_fld]/ba.H0/ba.H0;
+      //    printf("tau_of_z: %f, f_ADE: %f, Omega0: %f, Omega_ini %f  \n",tau_of_z_ADE, ba.f_ADE, ba.background_table[(ba.bt_size-1)*ba.bg_size+ba.index_bg_rho_fld]/ba.H0/ba.H0,ba.Omega_ini_ADE);
+      output[i] = ba.f_ADE - pfzw->target_value[i];
     }
   }
 
@@ -3978,6 +4015,7 @@ int input_get_guess(double *xguess,
 
   double Omega_M, a_decay, gamma, Omega0_dcdmdr=1.0;
   int index_guess;
+  double Omega_c_ADE=0.0;
 
   /* Cheat to read only known parameters: */
   pfzw->fc.size -= pfzw->target_size;
@@ -4020,6 +4058,7 @@ int input_get_guess(double *xguess,
 
   for (index_guess=0; index_guess < pfzw->target_size; index_guess++) {
     switch (pfzw->target_name[index_guess]) {
+      
     case theta_s:
       xguess[index_guess] = 3.54*pow(pfzw->target_value[index_guess],2)-5.455*pfzw->target_value[index_guess]+2.548;
       dxdy[index_guess] = (7.08*pfzw->target_value[index_guess]-5.455);
@@ -4110,6 +4149,13 @@ int input_get_guess(double *xguess,
          according to vanilla LambdaCDM. Should be good enough... */
       xguess[index_guess] = 2.43e-9/0.87659*pfzw->target_value[index_guess];
       dxdy[index_guess] = 2.43e-9/0.87659;
+      break;
+    case f_ADE:
+      Omega_c_ADE=(ba.Omega0_g+ba.Omega0_ur)*pow(1./ba.a_ADE,4.) + ba.Omega0_cdm*pow(1./ba.a_ADE,3.) + ba.Omega0_lambda;
+      xguess[index_guess] = 2.41 * Omega_c_ADE * pfzw->target_value[index_guess]/(1.-pfzw->target_value[index_guess]);
+      printf("Omega_c_ADE: %f \n",Omega_c_ADE);
+      dxdy[index_guess] = 2.41 * Omega_c_ADE /pow((1.-pfzw->target_value[index_guess]),2.);
+      ba.Omega_ini_ADE = xguess[index_guess];
       break;
     }
     //printf("xguess = %g\n",xguess[index_guess]);
