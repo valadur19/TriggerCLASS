@@ -1308,10 +1308,11 @@ int input_read_parameters(
     class_read_double("a_ADE",pba->a_ADE);
     class_read_double("Omega_ini_ADE",pba->Omega_ini_ADE);
     class_read_double("three_eos_ADE",pba->three_eos_ADE);
-    class_read_double("three_ceff2_EDE",ppt->three_ceff2_ADE);
+    class_read_double("three_ceff2_ADE",ppt->three_ceff2_ADE);
     class_read_double("Omega0_fld",pba->Omega0_fld);
     pba->fluid_equation_of_state = ADE;
     pba->cs2_fld = ppt->three_ceff2_ADE / 3.;
+    pba->use_ppf = _TRUE_;
     pba->Omega0_fld = 0.0; //Use Romberg in future
   }
   

@@ -574,7 +574,7 @@ int perturb_init(
   if (pba->has_fld == _TRUE_) {
 
     /* check values of w_fld at initial time and today */
-    class_call(background_w_fld(pba,     0.,   &w_fld_ini,&dw_over_da_fld,&integral_fld), pba->error_message, ppt->error_message);
+    class_call(background_w_fld(pba,     ppr->a_ini_over_a_today_default,   &w_fld_ini,&dw_over_da_fld,&integral_fld), pba->error_message, ppt->error_message);
     class_call(background_w_fld(pba,pba->a_today,&w_fld_0,&dw_over_da_fld,&integral_fld), pba->error_message, ppt->error_message);
 
     class_test(w_fld_ini >= 0.,
@@ -582,7 +582,7 @@ int perturb_init(
                "The fluid is meant to be negligible at early time, and unimportant for defining the initial conditions of other species. You are using parameters for which this assumption may break down, since at early times you have w_fld(a--->0) = %e >= 0",w_fld_ini);
 
     if (pba->use_ppf == _FALSE_) {
-
+      //printf("w_fld_ini: %f, a_ini: %E \n", w_fld_ini,ppr->a_ini_over_a_today_default);
       class_test((w_fld_ini +1.0)*(w_fld_0+1.0) <= 0.0,
                  ppt->error_message,
                  "w crosses -1 between the infinite past and today, and this would lead to divergent perturbation equations for the fluid perturbations. Try to switch to PPF scheme: use_ppf = yes");
@@ -9595,8 +9595,8 @@ int perturb_derivs(double tau,
     /** - ---> fluid (fld) */
 
     if (pba->has_fld == _TRUE_) {
-
       if (pba->use_ppf == _FALSE_){
+	
 
         /** - ----> factors w, w_prime, adiabatic sound speed ca2 (all three background-related),
             plus actual sound speed in the fluid rest frame cs2 */

@@ -1877,7 +1877,7 @@ int background_solve(
     }
     a=pvecback_integration[pba->index_bi_a];
     if (a>pba->a_ADE && pba->decay_flag_ADE == _FALSE_ && pba->f_ADE > 0){
-      printf("f_ADE: %f \n", pvecback[pba->index_bg_rho_fld] / pow(pvecback[pba->index_bg_H],2) );
+      printf("f_ADE: %f, z_ADE: %f, eos: %f, ceff2: %f  \n", pvecback[pba->index_bg_rho_fld] / pow(pvecback[pba->index_bg_H],2) ,1./a - 1, pba->three_eos_ADE / 3., pba->cs2_fld );
       pba->decay_flag_ADE=_TRUE_;
       pba->f_ADE =  pvecback[pba->index_bg_rho_fld] / pow(pvecback[pba->index_bg_H],2);
     }
