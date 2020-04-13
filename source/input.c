@@ -1310,7 +1310,7 @@ int input_read_parameters(
     class_read_double("three_eos_ADE",pba->three_eos_ADE);
     class_read_double("three_ceff2_ADE",ppt->three_ceff2_ADE);
     class_read_double("Omega0_fld",pba->Omega0_fld);
-    class_read_double("pba->a_ini_over_a_ADE",pba->a_ini_over_a_ADE);
+    class_read_double("a_ini_over_a_ADE",pba->a_ini_over_a_ADE);
 
     pba->fluid_equation_of_state = ADE;
     pba->cs2_fld = ppt->three_ceff2_ADE / 3.;
