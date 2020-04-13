@@ -39,6 +39,8 @@ enum CCa_flags {CCa_on, CCa_off};
 /*New EDE, we stop tracking NewEDE pert when sda_on*/
 enum sda_flags {sda_off, sda_on};
 
+enum ADE_flags {ADE_off, ADE_on};
+
 
 //@}
 
@@ -656,7 +658,8 @@ struct perturb_workspace
   int index_ap_ncdmfa; /**< index for ncdm fluid approximation */
   int index_ap_CCa; /**< index for New EDE approximation*/
   int index_ap_sda; /**< index for New EDE approximation*/
-
+  int index_ap_ADE;
+  
   int ap_size;      /**< number of relevant approximations for a given mode */
 
   int * approx;     /**< array of approximation flags holding at a given time: approx[index_ap] */

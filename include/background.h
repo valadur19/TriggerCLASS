@@ -64,6 +64,7 @@ struct background
 
   double three_eos_ADE;
   double a_ADE;
+  double a_ini_over_a_ADE;
   double Omega_ini_ADE;
   double f_ADE;
   
@@ -373,6 +374,7 @@ struct background
   short has_NEDE_pert;  /**< presence of NEDE perturbations*/
   short has_NEDE_trigger;
 
+  short has_ADE;
 
   //@}
 

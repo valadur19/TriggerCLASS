@@ -958,6 +958,7 @@ int background_indices(
   pba->has_idr = _FALSE_;
   pba->has_idm_dr = _FALSE_;
   pba->has_curvature = _FALSE_;
+  pba->has_ADE = _FALSE_;
   pba->has_NEDE = _FALSE_;
   pba->has_NEDE_pert = _FALSE_;
   pba->has_NEDE_trigger = _FALSE_;
@@ -993,8 +994,11 @@ int background_indices(
   if (pba->Omega0_fld != 0.)
     pba->has_fld = _TRUE_;
 
-  if (pba->f_ADE >0.)
+  if (pba->f_ADE >0.){
     pba->has_fld = _TRUE_;
+    pba->has_ADE = _TRUE_;
+  }
+    
   
   if (pba->Omega0_ur != 0.)
     pba->has_ur = _TRUE_;
