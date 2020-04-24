@@ -2658,7 +2658,7 @@ int perturb_workspace_init(
     }
 
     if (pba->has_ADE == _TRUE_){
-      ppw->approx[ppw->index_ap_ADE]=(int)ADE_off;
+      ppw->approx[ppw->index_ap_ADE]=(int)ADE_on;
     }
 
   }
@@ -6061,7 +6061,8 @@ int perturb_initial_conditions(struct precision * ppr,
 
       /* fluid (assumes wa=0, if this is not the case the
          fluid will catch anyway the attractor solution) */
-      if (pba->has_fld == _TRUE_ && pba->has_ADE == _FALSE_) {
+      //      if (pba->has_fld == _TRUE_ && pba->has_ADE == _FALSE_) {
+      if (pba->has_fld == _TRUE_) {
 
         class_call(background_w_fld(pba,a,&w_fld,&dw_over_da_fld,&integral_fld), pba->error_message, ppt->error_message);
 
@@ -6781,14 +6782,14 @@ int perturb_approximations(
       }
     }
 
-    if (pba->has_ADE == _TRUE_){
-      if (ppw->pvecback[pba->index_bg_a] < pba->a_ADE*pba->a_ini_over_a_ADE) {
-	ppw->approx[ppw->index_ap_ADE] = (int)ADE_off; 
-      }
-      else{
-	ppw->approx[ppw->index_ap_ADE] = (int)ADE_on; 
-      }
-    }	
+    //if (pba->has_ADE == _TRUE_){
+    //if (ppw->pvecback[pba->index_bg_a] < pba->a_ADE*pba->a_ini_over_a_ADE) {
+    //	ppw->approx[ppw->index_ap_ADE] = (int)ADE_off; 
+    //}
+    //else{
+    //	ppw->approx[ppw->index_ap_ADE] = (int)ADE_on; 
+    //}
+    //}	
 
     /* interacting dark radiation free streaming approximation*/
     if (pba->has_idr == _TRUE_){
@@ -7809,7 +7810,8 @@ int perturb_total_stress_energy(
 	if (ppw->approx[ppw->index_ap_ADE] == (int)ADE_on){
 	  ppw->delta_rho_fld = ppw->pvecback[pba->index_bg_rho_fld]*y[ppw->pv->index_pt_delta_fld];
 	  ppw->rho_plus_p_theta_fld = ppw->pvecback[pba->index_bg_rho_fld]*y[ppw->pv->index_pt_theta_fld];
-	  ca2_fld = w_fld - w_prime_fld / 3. / (1.+w_fld) / a_prime_over_a;
+	  //ca2_fld = w_fld - w_prime_fld / 3. / (1.+w_fld) / a_prime_over_a;
+	  ca2_fld = w_fld -   (1+pba->three_eos_ADE / 3.) * pow((pba->a_ADE/a),(3. + pba->three_eos_ADE)/0.5) / pow(1. + pow((pba->a_ADE/a),(3. + pba->three_eos_ADE)/0.5),1.);
 	  /** We must gauge transform the pressure perturbation from the fluid rest-frame to the gauge we are working in */
 	  ppw->delta_p_fld = pba->cs2_fld * ppw->delta_rho_fld + (pba->cs2_fld-ca2_fld)*(3*a_prime_over_a*ppw->rho_plus_p_theta_fld/k/k);
 	}
@@ -9865,15 +9867,18 @@ int perturb_derivs(double tau,
 
     if (pba->has_fld == _TRUE_) {
       if (pba->use_ppf == _FALSE_){
+
+	/*ADE: Important: We have redefined theta: theta->theta/(1+w)*/
 	
 	if (ppw->approx[ppw->index_ap_ADE] == (int)ADE_on){
         /** - ----> factors w, w_prime, adiabatic sound speed ca2 (all three background-related),
             plus actual sound speed in the fluid rest frame cs2 */
 
 	  class_call(background_w_fld(pba,a,&w_fld,&dw_over_da_fld,&integral_fld), pba->error_message, ppt->error_message);
-	  w_prime_fld = dw_over_da_fld * a_prime_over_a * a;
+	  //w_prime_fld = dw_over_da_fld * a_prime_over_a * a;
 
-	  ca2 = w_fld - w_prime_fld / 3. / (1.+w_fld) / a_prime_over_a;
+	  //ca2 = w_fld - w_prime_fld / 3. / (1.+w_fld) / a_prime_over_a;
+	  ca2 = w_fld -   (1+pba->three_eos_ADE / 3.) * pow((pba->a_ADE/a),(3. + pba->three_eos_ADE)/0.5) / pow(1. + pow((pba->a_ADE/a),(3. + pba->three_eos_ADE)/0.5),1.);
 	  cs2 = pba->cs2_fld;
 	
         /** - ----> fluid density */
