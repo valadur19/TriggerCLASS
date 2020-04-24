@@ -5621,13 +5621,28 @@ int perturb_vector_init(
             }
           }
 
+	  //ADE is turned on
+
+
 	  
 	  if (pba->has_fld == _TRUE_) {
 
 	    if (pba->use_ppf == _FALSE_) {
-	      ppv->y[ppv->index_pt_delta_fld] = 0.;
+	      double ktau_two,ktau_three;
+	      double w_fld,dw_over_da_fld,integral_fld;
+	      ktau_two=k*k*tau*tau;
+	      ktau_three=k*tau*ktau_two;
+
+	      a = ppw->pvecback[pba->index_bg_a];
+	      a_prime_over_a = ppw->pvecback[pba->index_bg_H]*a;
+	  
+	      
+	      class_call(background_w_fld(pba,a,&w_fld,&dw_over_da_fld,&integral_fld), pba->error_message, ppt->error_message);
+	      printf("k: %f,w: %E, a: %f, kktt: %f \n",k,w_fld+1,a,ktau_two);
+	      
+	      ppv->y[ppv->index_pt_delta_fld] = - ktau_two/4.*(1.+w_fld)*(4.-3.*pba->cs2_fld)/(4.-6.*w_fld+3.*pba->cs2_fld) * ppr->curvature_ini;
 		 
-	      ppv->y[ppv->index_pt_theta_fld] = 0.;
+	      ppv->y[ppv->index_pt_theta_fld] =  - k*ktau_three/4.*pba->cs2_fld*(1.+w_fld)/(4.-6.*w_fld+3.*pba->cs2_fld) * ppr->curvature_ini;
 	    }
 	    else {
 	      ppv->y[ppv->index_pt_Gamma_fld] =
@@ -6053,7 +6068,7 @@ int perturb_initial_conditions(struct precision * ppr,
         if (pba->use_ppf == _FALSE_) {
           ppw->pv->y[ppw->pv->index_pt_delta_fld] = - ktau_two/4.*(1.+w_fld)*(4.-3.*pba->cs2_fld)/(4.-6.*w_fld+3.*pba->cs2_fld) * ppr->curvature_ini * s2_squared; /* from 1004.5509 */ //TBC: curvature
 
-          ppw->pv->y[ppw->pv->index_pt_theta_fld] = - k*ktau_three/4.*pba->cs2_fld/(4.-6.*w_fld+3.*pba->cs2_fld) * ppr->curvature_ini * s2_squared; /* from 1004.5509 */ //TBC:curvature
+          ppw->pv->y[ppw->pv->index_pt_theta_fld] = - k*ktau_three/4.*pba->cs2_fld*(1.+w_fld)/(4.-6.*w_fld+3.*pba->cs2_fld) * ppr->curvature_ini * s2_squared; /* from 1004.5509 */ //TBC:curvature
         }
         /* if use_ppf == _TRUE_, y[ppw->pv->index_pt_Gamma_fld] will be automatically set to zero, and this is what we want (although one could probably work out some small nonzero initial conditions: TODO) */
       }
@@ -6327,7 +6342,7 @@ int perturb_initial_conditions(struct precision * ppr,
         class_call(background_w_fld(pba,a,&w_fld,&dw_over_da_fld,&integral_fld), pba->error_message, ppt->error_message);
 
         ppw->pv->y[ppw->pv->index_pt_delta_fld] += 3*(1.+w_fld)*a_prime_over_a*alpha;
-        ppw->pv->y[ppw->pv->index_pt_theta_fld] += k*k*alpha;
+        ppw->pv->y[ppw->pv->index_pt_theta_fld] += (1.+w_fld)*k*k*alpha;
       }
 
       /* scalar field: check */
@@ -7793,7 +7808,7 @@ int perturb_total_stress_energy(
       if ( pba->use_ppf == _FALSE_ ) {
 	if (ppw->approx[ppw->index_ap_ADE] == (int)ADE_on){
 	  ppw->delta_rho_fld = ppw->pvecback[pba->index_bg_rho_fld]*y[ppw->pv->index_pt_delta_fld];
-	  ppw->rho_plus_p_theta_fld = (1.+w_fld)*ppw->pvecback[pba->index_bg_rho_fld]*y[ppw->pv->index_pt_theta_fld];
+	  ppw->rho_plus_p_theta_fld = ppw->pvecback[pba->index_bg_rho_fld]*y[ppw->pv->index_pt_theta_fld];
 	  ca2_fld = w_fld - w_prime_fld / 3. / (1.+w_fld) / a_prime_over_a;
 	  /** We must gauge transform the pressure perturbation from the fluid rest-frame to the gauge we are working in */
 	  ppw->delta_p_fld = pba->cs2_fld * ppw->delta_rho_fld + (pba->cs2_fld-ca2_fld)*(3*a_prime_over_a*ppw->rho_plus_p_theta_fld/k/k);
@@ -9864,15 +9879,15 @@ int perturb_derivs(double tau,
         /** - ----> fluid density */
 
 	  dy[pv->index_pt_delta_fld] =
-	    -(1+w_fld)*(y[pv->index_pt_theta_fld]+metric_continuity)
+	    -(y[pv->index_pt_theta_fld]+(1.+w_fld)*metric_continuity)
 	    -3.*(cs2-w_fld)*a_prime_over_a*y[pv->index_pt_delta_fld]
-	    -9.*(1+w_fld)*(cs2-ca2)*a_prime_over_a*a_prime_over_a*y[pv->index_pt_theta_fld]/k2;
+	    -9.*(cs2-ca2)*a_prime_over_a*a_prime_over_a*y[pv->index_pt_theta_fld]/k2;
 
         /** - ----> fluid velocity */
 
 	  dy[pv->index_pt_theta_fld] = /* fluid velocity */
 	    -(1.-3.*cs2)*a_prime_over_a*y[pv->index_pt_theta_fld]
-	    +cs2*k2/(1.+w_fld)*y[pv->index_pt_delta_fld]
+	    +cs2*k2*y[pv->index_pt_delta_fld]
 	    +metric_euler;
 	}
       }
