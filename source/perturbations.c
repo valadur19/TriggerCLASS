@@ -9893,7 +9893,8 @@ int perturb_derivs(double tau,
 	  dy[pv->index_pt_theta_fld] = /* fluid velocity */
 	    -(1.-3.*cs2)*a_prime_over_a*y[pv->index_pt_theta_fld]
 	    +cs2*k2*y[pv->index_pt_delta_fld]
-	    +metric_euler;
+	    +metric_euler
+	    +3*a_prime_over_a*((1+pba->three_eos_ADE / 3.) * pow((pba->a_ADE/a),(3. + pba->three_eos_ADE)/0.5) / pow(1. + pow((pba->a_ADE/a),(3. + pba->three_eos_ADE)/0.5),1.))*y[pv->index_pt_theta_fld];
 	}
       }
       else {
