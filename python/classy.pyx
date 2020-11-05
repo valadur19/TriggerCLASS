@@ -660,8 +660,8 @@ cdef class Class:
 
         # For density Cls, the size is bigger (different redshfit bins)
         # computes the size, given the number of correlations needed to be computed
-        size = (self.sp.d_size*(self.sp.d_size+1)-(self.sp.d_size-self.sp.non_diag)*
-                (self.sp.d_size-1-self.sp.non_diag))/2;
+        size = int((self.sp.d_size*(self.sp.d_size+1)-(self.sp.d_size-self.sp.non_diag)*
+                (self.sp.d_size-1-self.sp.non_diag))/2);
         for elem in ['dd', 'll', 'dl']:
             if elem in spectra:
                 cl[elem] = {}
@@ -1464,8 +1464,8 @@ cdef class Class:
             raise CosmoSevereError(self.pm.error_message)
 
         tmp = <bytes> titles
-        names = tmp.split("\t")[:-1]
         tmp = str(tmp.decode())
+        names = tmp.split("\t")[:-1]
         number_of_titles = len(names)
         timesteps = self.pm.lnk_size
 
@@ -1685,7 +1685,7 @@ cdef class Class:
             elif name == 'Omega_m':
                 value = self.ba.Omega0_m
             elif name == 'omega_m':
-                value = self.ba.Omega0_m/self.ba.h**2
+                value = self.ba.Omega0_m*self.ba.h**2
             elif name == 'xi_idr':
                 value = self.ba.T_idr/self.ba.T_cmb
             elif name == 'N_dg':
